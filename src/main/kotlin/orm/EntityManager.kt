@@ -2,6 +2,7 @@ package orm;
 
 import kotlin.reflect.KClass;
 import kotlin.reflect.full.declaredMemberProperties;
+import orm.decorators.*;
 
 class EntityManager {
     private val entities: MutableMap<KClass<*>, MutableList<Any>> = mutableMapOf()
@@ -12,20 +13,21 @@ class EntityManager {
     }
 
     fun find(entityClass: KClass<*>, id: Long): Any? {
-        return entities[entityClass]?.firstOrNull { it::class.declaredMemberProperties.find { it.annotations.any { it is Id } }?.get(it) == id }
+        return entities[entityClass]?.firstOrNull { entity -> entity::class.declaredMemberProperties.find {
+            prop -> prop.annotations.any { it is PrimaryKey } }?.call(entity) == id
+        }
     }
 
     fun update(entity: Any) {
         val entityClass = entity::class
-        val tableName = getTableName(entityClass)
-
-        val entityId = entityClass.annotations.filterIsInstance<Id>().firstOrNull()?.let {
-            entityClass.declaredMemberProperties.find { it.annotations.any { it is Id } }?.get(entity)
+        val entityPrimaryKey = entityClass.annotations.filterIsInstance<PrimaryKey>().firstOrNull()?.let {
+            entityClass.declaredMemberProperties.find { it.annotations.any { it is PrimaryKey } }
         } ?: throw IllegalArgumentException("Entity must have a property marked with @Id")
 
-        entities[tableName]?.let { entityList ->
-            val index = entityList.indexOfFirst { it::class == entityClass && entityClass.declaredMemberProperties.find { prop ->
-                prop.annotations.any { it is Id } && prop.get(it) == entityId
+        entities[entityClass]?.let { entityList ->
+            val index = entityList.indexOfFirst { entity ->
+                entity::class == entityClass && entityClass.declaredMemberProperties.find { prop ->
+                prop.annotations.any { it is PrimaryKey } && prop.call(entity) == entityPrimaryKey
             } != null }
 
             if (index != -1) {
@@ -36,16 +38,15 @@ class EntityManager {
 
     fun delete(entity: Any) {
         val entityClass = entity::class
-        val tableName = getTableName(entityClass)
-
-        val entityId = entityClass.annotations.filterIsInstance<Id>().firstOrNull()?.let {
-            entityClass.declaredMemberProperties.find { it.annotations.any { it is Id } }?.get(entity)
+        val entityPrimaryKey = entityClass.annotations.filterIsInstance<PrimaryKey>().firstOrNull()?.let {
+            entityClass.declaredMemberProperties.find { prop -> prop.annotations.any { it is PrimaryKey } }
         } ?: throw IllegalArgumentException("Entity must have a property marked with @Id")
 
-        entities[tableName]?.let { entityList ->
-            val index = entityList.indexOfFirst { it::class == entityClass && entityClass.declaredMemberProperties.find { prop ->
-                prop.annotations.any { it is Id } && prop.get(it) == entityId
-            } != null }
+        entities[entityClass]?.let { entityList ->
+            val index = entityList.indexOfFirst { entity ->
+                entity::class == entityClass && entityClass.declaredMemberProperties.find { prop ->
+                    prop.annotations.any { it is PrimaryKey } && prop.call(entity) == entityPrimaryKey
+                } != null }
 
             if (index != -1) {
                 entityList.removeAt(index)

@@ -20,7 +20,7 @@
     <repositories>
         <repository>
             <id>mavenCentral</id>
-            <url>https://repo1.maven.org/maven2/</url>
+            <url>https://repo.maven.apache.org/maven2/</url>
         </repository>
     </repositories>
 
@@ -48,6 +48,9 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <jvmTarget>17</jvmTarget>
+                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -63,6 +66,14 @@
                 <version>1.6.0</version>
                 <configuration>
                     <mainClass>MainKt</mainClass>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
                 </configuration>
             </plugin>
         </plugins>
@@ -85,6 +96,17 @@
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib</artifactId>
             <version>1.9.22</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
+            <version>1.9.22</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-script-runtime</artifactId>
+            <version>1.9.22</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
