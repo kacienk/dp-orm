@@ -7,7 +7,14 @@ import orm.tableInheritance.cti.ConcreteTableInheritanceMapper
 import orm.tableInheritance.sti.SingleTableInheritanceMapper
 
 interface TableInheritanceMapper {
-    // Add common methods for SingleTableInheritanceMapper and ConcreteTableInheritanceMapper here
+    fun createTable(): Boolean
+    fun insert(entity: Any): Boolean
+    fun find(id: Long): Any?
+    fun findAll(): List<Any>
+    fun count(): Long
+    fun update(entity: Any): Boolean
+    fun remove(id: Long): Boolean
+    fun query(q: String): Any? // for hardcore SQL queries like using WHERE, ORDER BY etc. - who needs them btw?
 }
 
 class TableInheritanceFactory {
