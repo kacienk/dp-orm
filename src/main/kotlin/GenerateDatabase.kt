@@ -1,3 +1,4 @@
+import orm.SqlTypeMapper
 import orm.decorators.Column
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
@@ -83,6 +84,7 @@ fun generateSqlTableDefinitions(entityClasses: List<KClass<*>>): String {
 
 fun generateSqlForProp(prop: KProperty1<out Any, *>): String {
     val propSql = StringBuilder()
+    val typeMapper = SqlTypeMapper()
 
     val columnAnnotation = prop.findAnnotation<Column>()
     val joinColumnAnnotation = prop.findAnnotation<JoinColumn>()
@@ -100,10 +102,10 @@ fun generateSqlForProp(prop: KProperty1<out Any, *>): String {
         nullInfo = if (columnAnnotation.nullable) "" else " is not null"
         propName = columnAnnotation.name.ifEmpty { prop.name }
     }
-
     if (propName.isEmpty()) throw IllegalArgumentException("There is no column name")
 
-    val propType = prop.returnType.toString().substringAfterLast(".")
+    val propType = typeMapper.mapToSqlType(prop.returnType.classifier as KClass<*>)
+
     propSql.append("  $propName $propType$nullInfo,\n")
 
     return propSql.toString()
