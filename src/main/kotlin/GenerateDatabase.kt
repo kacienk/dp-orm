@@ -146,23 +146,28 @@ fun getListOfSetsForManyToManyRelations(entityClasses: List<KClass<*>>): List<Se
 
 fun getManyToManyRelationSet(entityClass: KClass<*>, prop: KProperty1<out Any, *>): Set<KClass<*>> {
     if (!prop.returnType.isSubtypeOf(Collection::class.createType()))
-        throw IllegalArgumentException("Field marked with @ManyToMany must be of type Collection")
+        throw IllegalArgumentException("Field marked with @ManyToMany must be of type Collection" +
+                " (${entityClass.simpleName}.${prop.name})")
     val propClassTypeArgument = prop.returnType.arguments.firstOrNull()
-        ?: throw IllegalArgumentException("Type of the field marked with @ManyToMany must have an argument")
+        ?: throw IllegalArgumentException("Type of the field marked with @ManyToMany must have an argument" +
+                " (${entityClass.simpleName}.${prop.name})")
     val relatedFieldType = propClassTypeArgument.type
         ?: throw  IllegalArgumentException(
-            "Type of the field marked with @ManyToMany cannot have a star projection argument"
+            "Type of the field marked with @ManyToMany cannot have a star projection argument" +
+                    " (${entityClass.simpleName}.${prop.name})"
         )
     val relatedFieldClass = relatedFieldType.classifier as KClass<*>
     relatedFieldClass.findAnnotation<Entity>() ?: throw  IllegalArgumentException(
-        "Type of the field marked with @ManyToMany must be annotated with @Entity"
+        "Argument of the type of the field marked with @ManyToMany must be annotated with @Entity" +
+                " (${entityClass.simpleName}.${prop.name})"
     )
     relatedFieldClass.declaredMemberProperties.find { relatedClassProp ->
         relatedClassProp.annotations.any { it is ManyToMany }
                 && relatedClassProp.returnType.isSubtypeOf(Collection::class.createType())
                 && relatedClassProp.returnType.arguments.firstOrNull()?.type?.classifier as KClass<*> == entityClass
     } ?: throw IllegalArgumentException(
-        "Related field $relatedFieldClass does not have proper corresponding field marked with @ManyToMany"
+        "Related field $relatedFieldClass does not have proper corresponding field marked with @ManyToMany" +
+                " (${entityClass.simpleName}.${prop.name})"
     )
 
     return setOf(entityClass, relatedFieldClass)
@@ -174,9 +179,9 @@ fun generateSqlForManyToManyTable(relatedEntities: Set<KClass<*>>): String {
     val firstTable = relatedEntities.first()
     val secondTable = relatedEntities.last()
     val firstTableEntity = firstTable.findAnnotation<Entity>()
-        ?: throw IllegalArgumentException("Type of the field marked with @ManyToMany must be marked with @Entity")
+        ?: throw IllegalArgumentException("Related class must be marked with @Entity (${firstTable.simpleName})")
     val secondTableEntity = secondTable.findAnnotation<Entity>()
-        ?: throw IllegalArgumentException("Type of the field marked with @ManyToMany must be marked with @Entity")
+        ?: throw IllegalArgumentException("Related class must be marked with @Entity (${secondTable.simpleName})")
     val firstTableName = firstTableEntity.tableName.ifEmpty { firstTable.simpleName }
     val secondTableName = secondTableEntity.tableName.ifEmpty { secondTable.simpleName }
     manyToManyTable.append("create table ${firstTableName}_$secondTableName (\n")
@@ -187,12 +192,12 @@ fun generateSqlForManyToManyTable(relatedEntities: Set<KClass<*>>): String {
         "  primary key (${firstTableName}_$firstTablePrimaryKeyName, ${secondTableName}_$secondTablePrimaryKeyName),\n"
     )
     manyToManyTable.append(
-        "  foreign key (${firstTableName}_$firstTablePrimaryKeyName)"
-                + " references $firstTableName($firstTablePrimaryKeyName),\n"
+        "  foreign key (${firstTableName}_$firstTablePrimaryKeyName)" +
+                " references $firstTableName($firstTablePrimaryKeyName),\n"
     )
     manyToManyTable.append(
-        "  foreign key (${secondTableName}_$secondTablePrimaryKeyName)"
-                + " references $secondTableName($secondTablePrimaryKeyName)\n"
+        "  foreign key (${secondTableName}_$secondTablePrimaryKeyName)" +
+                " references $secondTableName($secondTablePrimaryKeyName)\n"
     )
     manyToManyTable.append(");\n\n")
 
@@ -214,7 +219,7 @@ fun generateSqlRelationDefinitions(entityClasses: List<KClass<*>>): String {
 
         for (joinProp in propsWithJoinColumn){
             relationDefinitions.append("alter table $tableName\n")
-            val relationSql = generateSqlRelation(joinProp)
+            val relationSql = generateSqlRelation(entityClass, joinProp)
             relationDefinitions.append(relationSql)
         }
     }
@@ -223,11 +228,13 @@ fun generateSqlRelationDefinitions(entityClasses: List<KClass<*>>): String {
 }
 
 fun generateSqlRelation(
-    joinProp: KProperty1<out Any, *>
+    entityClass: KClass<*>, joinProp: KProperty1<out Any, *>
 ): String {
     val relation = StringBuilder()
     val joinColumnAnnotation = joinProp.findAnnotation<JoinColumn>()
-        ?: throw IllegalArgumentException("Join property field must be marked with @JoinColumn")
+        ?: throw IllegalArgumentException(
+            "Join property field must be marked with @JoinColumn (${entityClass.simpleName}.${joinProp.name})"
+        )
 
     val constraintUuid = UUID.randomUUID()
     val constraintUuidAsString = constraintUuid.toString().replace('-', '_')
@@ -238,7 +245,10 @@ fun generateSqlRelation(
 
     val referencedClass: KClass<*> = joinProp.returnType.classifier as KClass<*>
     val referencedClassEntityAnnotation = referencedClass.findAnnotation<Entity>()
-        ?: throw IllegalArgumentException("Type of the field marked with @JoinColumn must be marked with @Entity")
+        ?: throw IllegalArgumentException(
+            "Type of the field marked with @JoinColumn must be marked with " +
+                    "@Entity (${entityClass.simpleName}.${joinProp.name})"
+        )
     val referencedClassName = referencedClassEntityAnnotation.tableName.ifEmpty { referencedClass.simpleName }
     val primaryKeyName = getPrimaryKeyName(referencedClass)
     relation.append("  references $referencedClassName ($primaryKeyName)\n\n")
@@ -249,9 +259,11 @@ fun generateSqlRelation(
 fun getPrimaryKeyName(entityClass: KClass<*>): String {
     val entityPrimaryKey = entityClass.declaredMemberProperties.find { prop ->
         prop.annotations.any { it is PrimaryKey }
-    } ?: throw IllegalArgumentException("Entity must have a property marked with @PrimaryKey")
+    } ?: throw IllegalArgumentException("Entity must have a property marked with @PrimaryKey ($entityClass)")
     val primaryKeyColumnAnnotation = entityPrimaryKey.findAnnotation<Column>()
-        ?: throw IllegalArgumentException("Primary key field must be marked with @Column")
+        ?: throw IllegalArgumentException(
+            "Primary key field must be marked with @Column ($entityClass.${entityPrimaryKey.name})"
+        )
     return primaryKeyColumnAnnotation.name.ifEmpty { entityPrimaryKey.name }
 }
 
