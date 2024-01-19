@@ -6,6 +6,7 @@ import orm.decorators.Entity
 import orm.decorators.JoinColumn
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
+import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.superclasses
@@ -31,7 +32,7 @@ abstract class TableSqlGenerator {
         val onlyClassProps = clazz.memberProperties.filter {
                 prop -> prop.name !in baseClass.memberProperties.map { it.name }
         }
-        for (prop in onlyClassProps) {
+        for (prop in clazz.declaredMemberProperties) {
             val sqlForProp = generateSqlForProp(prop)
             allPropsSql.append(sqlForProp)
         }

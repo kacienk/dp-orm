@@ -1,13 +1,9 @@
-package orm.tableInheritance.cti
+package orm.tableInheritance.mappers.cti
 
-import orm.tableInheritance.TableInheritanceMapper
+import orm.tableInheritance.ITableInheritanceMapper
+import kotlin.reflect.KClass
 
-class ConcreteTableInheritanceMapper: TableInheritanceMapper {
-    override fun createTable(): Boolean {
-        // Implementation for creating a table (if needed)
-        throw NotImplementedError("This function is not implemented yet.")
-    }
-
+class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper {
     override fun insert(entity: Any): Boolean {
         // Implementation for inserting a record
         throw NotImplementedError("This function is not implemented yet.")
@@ -15,16 +11,6 @@ class ConcreteTableInheritanceMapper: TableInheritanceMapper {
 
     override fun find(id: Long): Any? {
         // Implementation for finding a record by ID
-        throw NotImplementedError("This function is not implemented yet.")
-    }
-
-    override fun findAll(): List<Any> {
-        // Implementation for retrieving all records
-        throw NotImplementedError("This function is not implemented yet.")
-    }
-
-    override fun count(): Long {
-        // Implementation for getting the total number of records
         throw NotImplementedError("This function is not implemented yet.")
     }
 

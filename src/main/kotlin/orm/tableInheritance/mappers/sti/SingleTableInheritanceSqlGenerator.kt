@@ -1,4 +1,4 @@
-package orm.tableInheritance.sti
+package orm.tableInheritance.mappers.sti
 
 import generateSqlForPrimaryKey
 import orm.tableInheritance.TableSqlGenerator
