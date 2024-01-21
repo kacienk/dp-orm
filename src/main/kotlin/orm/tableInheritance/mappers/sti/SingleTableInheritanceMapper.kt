@@ -5,6 +5,7 @@ import orm.decorators.Column
 import orm.decorators.Entity
 import orm.decorators.JoinColumn
 import orm.tableInheritance.ITableInheritanceMapper
+import java.sql.ResultSet
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.*
@@ -18,12 +19,8 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
 
     override fun find(id: Long?): Any? {
         val sqlOnlyEntitySelect = findOnlyEntitySql(id)
-        // execute select on only entity query
-        sqlOnlyEntitySelect.execAndMap { resultSet ->
-            // TODO map to instance of clazz
-        }
 
-        return null
+        return sqlOnlyEntitySelect.execAndMap(::findTransform)
     }
 
     override fun update(entity: Any): Boolean {
@@ -48,18 +45,23 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
     }
 
     private fun getColumnNamesWithInheritanceSql(entityClass: KClass<*>): String {
-        val columnNamesBuilder = StringBuilder()
+        return this.getColumnNamesWithInheritance(entityClass).joinToString(", ")
+    }
 
-        columnNamesBuilder.append(getColumnNamesSql(entityClass))
+    private fun getColumnNamesWithInheritance(entityClass: KClass<*>): MutableList<String> {
+        val columnNames = mutableListOf<String>()
+
+        entityClass.declaredMemberProperties.filter {
+            prop -> getColumnName(prop) != null
+        }.forEach { prop -> columnNames.add(getColumnName(prop)!!) } // nulls filtered out
 
         entityClass.superclasses.forEach { superclass ->
             if (superclass.findAnnotation<Entity>() != null) {
-                columnNamesBuilder.append(", ")
-                columnNamesBuilder.append(this.getColumnNamesWithInheritanceSql(superclass))
+                columnNames.addAll(this.getColumnNamesWithInheritance(superclass))
             }
         }
 
-        return columnNamesBuilder.toString()
+        return columnNames
     }
 
     private fun findOnlyEntitySql(id: Long?): String {
@@ -79,5 +81,17 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
 
         selectBuilder.append(";")
         return selectBuilder.toString()
+    }
+
+    private fun findTransform(rs: ResultSet): Any {
+        getTableName(clazz) // Check if entity class
+
+        val values = this.getColumnNamesWithInheritance(clazz).map {
+            prop -> prop to rs.getObject(prop)
+        }
+
+        val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
+
+        return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
     }
 }
