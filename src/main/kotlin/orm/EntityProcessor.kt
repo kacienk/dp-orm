@@ -43,7 +43,7 @@ abstract class EntityProcessor {
             val columnName = getColumnName(prop) ?: continue
             columnNamesBuilder.append(columnName)
 
-            if (index + 1 <= entityClass.declaredMemberProperties.size) {
+            if (index + 1 < entityClass.declaredMemberProperties.size) {
                 columnNamesBuilder.append(", ")
             }
             else {
