@@ -47,17 +47,33 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         return extractMostBaseClass(baseClass)
     }
 
+    private fun getColumnNamesWithInheritanceSql(entityClass: KClass<*>): String {
+        val columnNamesBuilder = StringBuilder()
+
+        columnNamesBuilder.append(getColumnNamesSql(entityClass))
+
+        entityClass.superclasses.forEach { superclass ->
+            if (superclass.findAnnotation<Entity>() != null) {
+                columnNamesBuilder.append(", ")
+                columnNamesBuilder.append(this.getColumnNamesWithInheritanceSql(superclass))
+            }
+        }
+
+        return columnNamesBuilder.toString()
+    }
+
     private fun findOnlyEntitySql(id: Long?): String {
         val selectBuilder = StringBuilder("SELECT ")
 
-        val columnNames = getColumnNamesSql(clazz)
+        val columnNames = getColumnNamesWithInheritanceSql(clazz)
         selectBuilder.append("$columnNames\n")
 
-        val tableName = getTableName(this.extractMostBaseClass(clazz))
+        val mostBaseClass =this.extractMostBaseClass(clazz)
+        val tableName = getTableName(mostBaseClass)
         selectBuilder.append("FROM $tableName\n")
 
         if (id != null) {
-            val primaryKey = getPrimaryKeyName(clazz)
+            val primaryKey = getPrimaryKeyName(mostBaseClass)
             selectBuilder.append("WHERE $primaryKey = $id\n")
         }
 
