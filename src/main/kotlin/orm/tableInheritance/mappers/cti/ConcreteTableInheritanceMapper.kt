@@ -9,7 +9,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         throw NotImplementedError("This function is not implemented yet.")
     }
 
-    override fun find(id: Long): Any? {
+    override fun find(id: Long?): Any? {
         // Implementation for finding a record by ID
         throw NotImplementedError("This function is not implemented yet.")
     }
