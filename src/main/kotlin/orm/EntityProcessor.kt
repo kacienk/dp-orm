@@ -79,6 +79,7 @@ abstract class EntityProcessor {
         return when (value) {
             is String -> "'$value'"
             is Number -> value.toString()
+            is Boolean -> value.toString()
             // Add more cases as needed
             else -> "NULL"
         }
