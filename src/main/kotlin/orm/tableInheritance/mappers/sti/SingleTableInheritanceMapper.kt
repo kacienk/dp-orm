@@ -1,9 +1,9 @@
 package orm.tableInheritance.mappers.sti
 
+import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.sql.transactions.transaction
 import orm.EntityProcessor
-import orm.decorators.Column
 import orm.decorators.Entity
-import orm.decorators.JoinColumn
 import orm.tableInheritance.ITableInheritanceMapper
 import java.sql.ResultSet
 import kotlin.reflect.KClass
@@ -13,29 +13,110 @@ import kotlin.reflect.full.*
 
 class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper, EntityProcessor() {
     override fun insert(entity: Any): Boolean {
-        // Implementation for inserting a record
-        throw NotImplementedError("This function is not implemented yet.")
+        val sqlInsert = StringBuilder()
+        val castedEntity = clazz.cast(entity)
+        val castedEntityClass = castedEntity::class
+        val mostBaseClass = this.extractMostBaseClass(castedEntityClass)
+        val tableName = getTableName(mostBaseClass)
+
+        val columnNamesAndValues = extractAllPropertiesWithInheritance(castedEntityClass).filter { prop ->
+            getColumnName(prop) != null
+        }.map { prop -> getColumnName(prop) to prop.call(castedEntity) }
+
+        sqlInsert.append("INSERT INTO $tableName (\n")
+        sqlInsert.append(columnNamesAndValues.joinToString(", ") { it.first!! })
+        sqlInsert.append("\n) VALUES (\n")
+        sqlInsert.append(columnNamesAndValues.joinToString(", ") { formatValue(it.second) })
+        sqlInsert.append("\n);")
+
+        val sqlStatement = sqlInsert.toString()
+
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
+
+        return true
     }
 
     override fun find(id: Long?): Any? {
-        val sqlOnlyEntitySelect = findOnlyEntitySql(id)
+        val sqlSelect = StringBuilder("SELECT ")
 
-        return sqlOnlyEntitySelect.execAndMap(::findTransform)
+        val columnNames = getColumnNamesWithInheritanceSql(clazz)
+        sqlSelect.append("$columnNames\n")
+
+        val mostBaseClass =this.extractMostBaseClass(clazz)
+        val tableName = getTableName(mostBaseClass)
+        sqlSelect.append("FROM $tableName\n")
+
+        if (id != null) {
+            val primaryKey = getPrimaryKeyName(mostBaseClass)
+            sqlSelect.append("WHERE $primaryKey = $id\n")
+        }
+
+        sqlSelect.append(";")
+        val sqlStatement = sqlSelect.toString()
+
+        return sqlStatement.execAndMap(::transform)
     }
 
     override fun update(entity: Any): Boolean {
-        // Implementation for updating a record
-        throw NotImplementedError("This function is not implemented yet.")
+        val sqlUpdate = StringBuilder()
+
+        val castedEntity = clazz.cast(entity)
+        val castedEntityClass = castedEntity::class
+
+        val mostBaseClass = this.extractMostBaseClass(castedEntityClass)
+        val tableName = getTableName(mostBaseClass)
+
+        val primaryKeyProp = getPrimaryKeyProp(mostBaseClass)
+        val primaryKey = getColumnName(primaryKeyProp) to (
+                primaryKeyProp.call(castedEntity) ?: throw IllegalArgumentException(
+                    "Updated entity must have value in field annotated with @PrimaryKey"
+                )
+                )
+
+        val columnNamesAndValues = extractAllPropertiesWithInheritance(castedEntityClass).filter { prop ->
+            getColumnName(prop) != null
+        }.map { prop -> getColumnName(prop) to prop.call(castedEntity) }
+
+        sqlUpdate.append("UPDATE $tableName SET\n")
+        sqlUpdate.append(columnNamesAndValues.joinToString(", ") { "${it.first!!} = ${formatValue(it.second)}" })
+        sqlUpdate.append("\nWHERE ${primaryKey.first} = ${formatValue(primaryKey.second)};")
+
+        val sqlStatement = sqlUpdate.toString()
+
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
+
+        return true
     }
 
     override fun remove(id: Long): Boolean {
-        // Implementation for removing a record by ID
-        throw NotImplementedError("This function is not implemented yet.")
+        val sqlRemove = StringBuilder()
+        val mostBaseClass = this.extractMostBaseClass(clazz)
+        val tableName = getTableName(mostBaseClass)
+        val primaryKeyColumn = getPrimaryKeyName(mostBaseClass)
+
+        sqlRemove.append("DELETE FROM $tableName WHERE $primaryKeyColumn = $id;")
+        val sqlStatement = sqlRemove.toString()
+
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
+
+        return true
     }
 
-    override fun query(q: String): Any? {
-        // Implementation for executing custom queries
-        throw NotImplementedError("This function is not implemented yet.")
+    override fun query(q: String): Any {
+        return q.execAndMap(::transform)
+    }
+
+    private fun extractAllPropertiesWithInheritance(clazz: KClass<*>): List<KProperty1<out Any, *>> {
+        val mostBaseClass = extractMostBaseClass(clazz)
+        val notEntityClass = mostBaseClass.superclasses.firstOrNull() ?: return emptyList()
+
+        return clazz.memberProperties.filter { prop -> prop !in notEntityClass.memberProperties }
     }
 
     private fun extractMostBaseClass(clazz: KClass<*>): KClass<*> {
@@ -64,26 +145,7 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         return columnNames
     }
 
-    private fun findOnlyEntitySql(id: Long?): String {
-        val selectBuilder = StringBuilder("SELECT ")
-
-        val columnNames = getColumnNamesWithInheritanceSql(clazz)
-        selectBuilder.append("$columnNames\n")
-
-        val mostBaseClass =this.extractMostBaseClass(clazz)
-        val tableName = getTableName(mostBaseClass)
-        selectBuilder.append("FROM $tableName\n")
-
-        if (id != null) {
-            val primaryKey = getPrimaryKeyName(mostBaseClass)
-            selectBuilder.append("WHERE $primaryKey = $id\n")
-        }
-
-        selectBuilder.append(";")
-        return selectBuilder.toString()
-    }
-
-    private fun findTransform(rs: ResultSet): Any {
+    private fun transform(rs: ResultSet): Any {
         getTableName(clazz) // Check if entity class
 
         val values = this.getColumnNamesWithInheritance(clazz).map {

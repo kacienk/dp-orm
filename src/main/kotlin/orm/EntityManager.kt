@@ -26,9 +26,4 @@ class EntityManager(private val entityClass: KClass<*>) {
     fun query(q: String) {
         mapper.query(q);
     }
-
-    private fun getTableName(entityClass: KClass<*>): String {
-        return entityClass.annotations.filterIsInstance<Entity>().firstOrNull()?.tableName
-            ?: entityClass.simpleName ?: throw IllegalArgumentException("Entity class must have a simple name.")
-    }
 }
