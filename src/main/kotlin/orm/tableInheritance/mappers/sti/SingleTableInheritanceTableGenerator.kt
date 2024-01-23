@@ -4,7 +4,7 @@ import generateSqlForPrimaryKey
 import orm.tableInheritance.TableSqlGenerator
 import kotlin.reflect.KClass
 
-class SingleTableInheritanceSqlGenerator: TableSqlGenerator() {
+class SingleTableInheritanceTableGenerator: TableSqlGenerator() {
     private val inheritanceMap: MutableMap<KClass<*>, MutableList<KClass<*>>> = mutableMapOf()
 
     override fun add(clazz: KClass<*>) {
