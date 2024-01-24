@@ -1,11 +1,11 @@
 package orm.tableInheritance
 
 import orm.EntityProcessor
-import orm.SqlTypeMapper
-import orm.decorators.Column
-import orm.decorators.Entity
-import orm.decorators.JoinColumn
-import orm.decorators.ManyToMany
+import orm.decorators.*
+import orm.enums.InheritanceType
+import orm.tableInheritance.mappers.cti.ConcreteTableInheritanceTableGenerator
+import orm.tableInheritance.mappers.noi.NoInheritanceTableGenerator
+import orm.tableInheritance.mappers.sti.SingleTableInheritanceTableGenerator
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
@@ -13,8 +13,12 @@ import kotlin.reflect.full.*
 
 
 class DatabaseGenerator: EntityProcessor() {
+    private val noInheritance = NoInheritanceTableGenerator()
+    private val singleTableInheritance = SingleTableInheritanceTableGenerator()
+    private val concreteTableInheritance = ConcreteTableInheritanceTableGenerator()
 
-    fun generateDatabase(entities: List<KClass<*>>) {
+    fun generateDatabase(kClasses: List<KClass<*>>) {
+        val entities = filterEntities(kClasses)
         if (entities.isEmpty())
             return println("No classes with @Entity annotation found.")
 
@@ -28,13 +32,27 @@ class DatabaseGenerator: EntityProcessor() {
         java.io.File(fileName).writeText(content)
     }
 
+    private fun filterEntities(kClasses: List<KClass<*>>): List<KClass<*>> {
+        return kClasses.filter { clazz -> clazz.findAnnotation<Entity>() != null }
+    }
+
+    private fun detectStrategy(clazz: KClass<*>): InheritanceType? {
+        val tableInheritanceAnnotation = clazz.annotations.find { it is Inheritance }
+        return when (tableInheritanceAnnotation) {
+            is Inheritance -> tableInheritanceAnnotation.strategy
+            else -> null
+        }
+    }
+
     private fun generateCreateSql(entityClasses: List<KClass<*>>): String {
         val createSql = StringBuilder()
 
         val tableDefinitions = generateSqlTableDefinitions(entityClasses)
         createSql.append(tableDefinitions)
+
         val manyToManyTableDefinitions = generateSqlForManyToManyTableDefinitions(entityClasses)
         createSql.append(manyToManyTableDefinitions)
+
         val relationDefinitions = generateSqlRelationDefinitions(entityClasses)
         createSql.append(relationDefinitions)
 
@@ -45,58 +63,18 @@ class DatabaseGenerator: EntityProcessor() {
         val tablesDefinitions = StringBuilder()
 
         for (entityClass in entityClasses) {
-            val entityAnnotation = entityClass.findAnnotation<Entity>() ?: continue
-            val tableName = entityAnnotation.tableName.ifEmpty { entityClass.simpleName }
-
-            tablesDefinitions.append("create table $tableName (\n")
-
-            val properties = entityClass.memberProperties
-            for (prop in properties) {
-                val sqlForProp = generateSqlForProp(prop)
-                tablesDefinitions.append(sqlForProp)
+            when (detectStrategy(entityClass)) {
+                InheritanceType.SINGLE -> singleTableInheritance.add(entityClass)
+                InheritanceType.CONCRETE -> concreteTableInheritance.add(entityClass)
+                else -> noInheritance.add(entityClass)
             }
-
-            val primaryKeySql = generateSqlForPrimaryKey(entityClass)
-            tablesDefinitions.append(primaryKeySql)
-
-            tablesDefinitions.append(");\n\n")
         }
+
+        tablesDefinitions.append(noInheritance.parse())
+        tablesDefinitions.append(singleTableInheritance.parse())
+        tablesDefinitions.append(concreteTableInheritance.parse())
 
         return tablesDefinitions.toString()
-    }
-
-    private fun generateSqlForProp(prop: KProperty1<out Any, *>): String {
-        val propSql = StringBuilder()
-        val typeMapper = SqlTypeMapper()
-
-        val columnAnnotation = prop.findAnnotation<Column>()
-        val joinColumnAnnotation = prop.findAnnotation<JoinColumn>()
-        if (columnAnnotation == null && joinColumnAnnotation == null)
-            return propSql.toString()
-
-        var nullInfo = ""
-        var propName = ""
-        if (joinColumnAnnotation != null) {
-            nullInfo = if (joinColumnAnnotation.nullable) "" else " not null"
-            propName = joinColumnAnnotation.name.ifEmpty { prop.name }
-        }
-        else if (columnAnnotation != null)
-        {
-            nullInfo = if (columnAnnotation.nullable) "" else " not null"
-            propName = columnAnnotation.name.ifEmpty { prop.name }
-        }
-        if (propName.isEmpty()) throw IllegalArgumentException("There is no column name")
-
-        val propType = typeMapper.mapToSqlType(prop.returnType.classifier as KClass<*>)
-
-        propSql.append("  $propName $propType$nullInfo,\n")
-
-        return propSql.toString()
-    }
-
-    private fun generateSqlForPrimaryKey(entityClass: KClass<*>): String {
-        val primaryKeyName = getPrimaryKeyName(entityClass)
-        return "  primary key ($primaryKeyName)\n"
     }
 
     private fun generateSqlForManyToManyTableDefinitions(entityClasses: List<KClass<*>>): String {
@@ -170,7 +148,11 @@ class DatabaseGenerator: EntityProcessor() {
             ?: throw IllegalArgumentException("Related class must be marked with @Entity (${secondTable.simpleName})")
         val firstTableName = firstTableEntity.tableName.ifEmpty { firstTable.simpleName }
         val secondTableName = secondTableEntity.tableName.ifEmpty { secondTable.simpleName }
-        manyToManyTable.append("create table ${firstTableName}_$secondTableName (\n")
+
+        if (firstTableName!! <= secondTableName!!)
+            manyToManyTable.append("create table ${firstTableName}_$secondTableName (\n")
+        else
+            manyToManyTable.append("create table ${secondTableName}_$firstTableName (\n")
 
         val firstTablePrimaryKeyName = getPrimaryKeyName(firstTable)
         val secondTablePrimaryKeyName = getPrimaryKeyName(secondTable)

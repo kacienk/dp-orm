@@ -80,7 +80,7 @@ abstract class EntityProcessor {
             is Number -> value.toString()
             is Boolean -> value.toString()
             // Add more cases as needed
-            else -> "NULL"
+            else -> "NULL" // TODO issue with relations
         }
     }
 }

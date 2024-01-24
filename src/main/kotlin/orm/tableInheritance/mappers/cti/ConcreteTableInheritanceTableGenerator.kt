@@ -3,46 +3,40 @@ package orm.tableInheritance.mappers.cti
 import orm.EntityProcessor
 import orm.tableInheritance.ITableGenerator
 import kotlin.reflect.KClass
+import kotlin.reflect.full.superclasses
 
 class ConcreteTableInheritanceTableGenerator: ITableGenerator, IConcreteTableInheritance, EntityProcessor() {
-    private val inheritanceMap: MutableMap<KClass<*>, MutableList<KClass<*>>> = mutableMapOf()
-
+    private val concreteClassList: MutableList<KClass<*>> = mutableListOf()
     override fun add(clazz: KClass<*>) {
-        if (inheritanceMap.containsKey(clazz))
-            return
-
-        val mostBaseClass = extractMostBaseClass(clazz)
-
-        if (inheritanceMap.containsKey(mostBaseClass)) {
-            inheritanceMap[mostBaseClass]!!.add(clazz)
-        }
-        else {
-            inheritanceMap[mostBaseClass] = mutableListOf(clazz)
+        if (!clazz.isAbstract) {
+            concreteClassList.add(clazz)
         }
     }
 
     override fun parse(): String {
         val allTablesBuilder = StringBuilder()
-        inheritanceMap.forEach { (baseClass, classList) -> classList.forEach {
-            childClass -> allTablesBuilder.append(createTable(baseClass, childClass)) }
-        }
+        concreteClassList.forEach { concreteClass -> allTablesBuilder.append(createTable(concreteClass))}
         return allTablesBuilder.toString()
     }
 
-    private fun createTable(baseClass: KClass<*>, childClass: KClass<*>): String {
+    private fun createTable(concreteClass: KClass<*>): String {
         val tableBuilder = StringBuilder()
 
-        val tableName = getTableName(childClass)
+        val tableName = getTableName(concreteClass)
 
         tableBuilder.append("create table $tableName (\n")
 
-        val allPropsSql = generateSqlForAllProps(baseClass)
-        tableBuilder.append(allPropsSql)
+        val baseClass = concreteClass.superclasses.firstOrNull()
 
-        val classAllPropsSql = generateSqlForAllProps(childClass)
+        if (baseClass != null) {
+            val allPropsSql = generateSqlForAllProps(baseClass)
+            tableBuilder.append(allPropsSql)
+        }
+
+        val classAllPropsSql = generateSqlForAllProps(concreteClass)
         tableBuilder.append(classAllPropsSql)
 
-        val primaryKeyName = getPrimaryKeyName(baseClass)
+        val primaryKeyName = getPrimaryKeyName(concreteClass)
         val primaryKeySql = generateSqlForPrimaryKey(primaryKeyName)
         tableBuilder.append(primaryKeySql)
 

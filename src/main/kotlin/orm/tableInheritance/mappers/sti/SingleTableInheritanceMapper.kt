@@ -11,7 +11,7 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.full.*
 
 
-class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper, EntityProcessor() {
+class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper, ISingleTableInheritance, EntityProcessor() {
     override fun insert(entity: Any): Boolean {
         val sqlInsert = StringBuilder()
         val castedEntity = clazz.cast(entity)
@@ -31,9 +31,11 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
 
         val sqlStatement = sqlInsert.toString()
 
-        transaction {
-            TransactionManager.current().exec(sqlStatement)
-        }
+        println(sqlStatement)
+
+//        transaction {
+//            TransactionManager.current().exec(sqlStatement)
+//        }
 
         return true
     }
@@ -56,6 +58,8 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         sqlSelect.append(";")
         val sqlStatement = sqlSelect.toString()
 
+        println(sqlStatement)
+        return null
         return sqlStatement.execAndMap(::transform)
     }
 
@@ -85,9 +89,11 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
 
         val sqlStatement = sqlUpdate.toString()
 
-        transaction {
-            TransactionManager.current().exec(sqlStatement)
-        }
+        println(sqlStatement)
+
+//        transaction {
+//            TransactionManager.current().exec(sqlStatement)
+//        }
 
         return true
     }
@@ -101,9 +107,10 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         sqlRemove.append("DELETE FROM $tableName WHERE $primaryKeyColumn = $id;")
         val sqlStatement = sqlRemove.toString()
 
-        transaction {
-            TransactionManager.current().exec(sqlStatement)
-        }
+        println(sqlStatement)
+//        transaction {
+//            TransactionManager.current().exec(sqlStatement)
+//        }
 
         return true
     }
@@ -117,12 +124,6 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         val notEntityClass = mostBaseClass.superclasses.firstOrNull() ?: return emptyList()
 
         return clazz.memberProperties.filter { prop -> prop !in notEntityClass.memberProperties }
-    }
-
-    private fun extractMostBaseClass(clazz: KClass<*>): KClass<*> {
-        val baseClass = clazz.superclasses.firstOrNull() ?: return clazz
-        baseClass.findAnnotation<Entity>() ?: return clazz
-        return extractMostBaseClass(baseClass)
     }
 
     private fun getColumnNamesWithInheritanceSql(entityClass: KClass<*>): String {

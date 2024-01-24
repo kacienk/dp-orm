@@ -28,9 +28,11 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
 
         val sqlStatement = sqlInsert.toString()
 
-        transaction {
-            TransactionManager.current().exec(sqlStatement)
-        }
+        println(sqlStatement)
+
+//        transaction {
+//            TransactionManager.current().exec(sqlStatement)
+//        }
 
         return true
     }
@@ -42,9 +44,13 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
 
         sqlSelect.append("select ${getColumnNamesSql(clazz)}")
         sqlSelect.append(" from $tableName")
-        sqlSelect.append(" where $primaryKeyName = $id")
+        if (id != null)
+            sqlSelect.append(" where $primaryKeyName = $id")
+        sqlSelect.append(";")
         val sqlStatement = sqlSelect.toString()
 
+        println(sqlStatement)
+        return null
         return sqlStatement.execAndMap(::transform).firstOrNull()
     }
 
@@ -69,9 +75,11 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
 
         val sqlStatement = sqlUpdate.toString()
 
-        transaction {
-            TransactionManager.current().exec(sqlStatement)
-        }
+        println(sqlStatement)
+
+//        transaction {
+//            TransactionManager.current().exec(sqlStatement)
+//        }
 
         return true
     }
@@ -81,12 +89,14 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
         val tableName = getTableName(clazz)
         val primaryKeyColumn = getPrimaryKeyName(clazz)
 
-        sqlUpdate.append("delete from $tableName where $primaryKeyColumn = $id")
+        sqlUpdate.append("delete from $tableName where $primaryKeyColumn = $id;")
         val sqlStatement = sqlUpdate.toString()
 
-        transaction {
-            TransactionManager.current().exec(sqlStatement)
-        }
+        println(sqlStatement)
+
+//        transaction {
+//            TransactionManager.current().exec(sqlStatement)
+//        }
 
         return true
     }
