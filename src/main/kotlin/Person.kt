@@ -4,6 +4,7 @@ import orm.decorators.Inheritance
 import orm.decorators.PrimaryKey
 import orm.enums.InheritanceType
 
+
 @Entity(tableName = "persons")
 @Inheritance(strategy = InheritanceType.SINGLE)
 open class Person(
