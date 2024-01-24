@@ -184,72 +184,91 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
     }
 
+    private fun handleFindOneToOneRelation(prop: KProperty1<out Any, *>, rs: ResultSet): Pair<String, Any?>? {
+        prop.findAnnotation<OneToOne>() ?: return null
+
+        val relationOtherSidePK = rs.getObject(getColumnName(prop)) as Long
+        val otherSideMapper = TableInheritanceFactory().getMapper(prop.returnType::class) // TODO idk if that will work
+        val otherSideObject = otherSideMapper.findWithoutRelations(relationOtherSidePK, clazz)
+        return getColumnName(prop)!! to otherSideObject
+    }
+
+    private fun handleFindOneToManyRelation(prop: KProperty1<out Any, *>, rs: ResultSet): Pair<String, Any?>? {
+        prop.findAnnotation<OneToMany>() ?: return null
+
+        val pkValue = rs.getObject(getPrimaryKeyName(clazz)) as Long
+        val otherSideClassType = prop.returnType.arguments.firstOrNull()?.type?.withNullability(false) // TODO idk if that will work
+
+        if (otherSideClassType == null) {
+            println("otherSideClassType is null")
+            return getColumnName(prop)!! to null
+        }
+
+        val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType::class) // TODO idk if that will work
+        val otherSideObject = otherSideMapper.findWithoutRelations(pkValue, clazz)
+        return getColumnName(prop)!! to otherSideObject
+    }
+
+    private fun handleFindManyToOneRelation(prop: KProperty1<out Any, *>, rs: ResultSet): Pair<String, Any?>? {
+        prop.findAnnotation<ManyToOne>() ?: return null
+
+        val relationOtherSidePK = rs.getObject(getColumnName(prop)) as Long
+        val otherSideMapper = TableInheritanceFactory().getMapper(prop.returnType::class) // TODO idk if that will work
+        val otherSideObject = otherSideMapper.findWithoutRelations(relationOtherSidePK, clazz)
+        return getColumnName(prop)!! to otherSideObject
+    }
+
+    private fun handleFindManyToManyRelation(prop: KProperty1<out Any, *>, rs: ResultSet): Pair<String, Any?>? {
+        prop.findAnnotation<ManyToMany>() ?: return null
+
+        val pkValue = rs.getObject(getPrimaryKeyName(clazz)) as Long
+        val otherSideClassType = prop.returnType.classifier as KClass<*> // TODO idk if that will work
+        val otherSideClassPrimaryKeyName = getPrimaryKeyName(otherSideClassType)
+
+        if (otherSideClassType == null) {
+            println("otherSideClassType is null")
+            return getColumnName(prop)!! to null
+        }
+
+        val firstTableName = getTableName(clazz)
+        val secondTableName = getTableName(otherSideClassType::class)
+        val middleTableName = if (firstTableName!! <= secondTableName!!)
+            "${firstTableName}_$secondTableName"
+        else
+            "${secondTableName}_$firstTableName"
+
+        val selectColumn = "${secondTableName}_$otherSideClassPrimaryKeyName"
+        val middleQuery = "select $selectColumn from $middleTableName where ${getPrimaryKeyName(clazz)} = ${formatValue(pkValue)}"
+        val objectsPksList = middleQuery.execAndMap { rs -> rs.getObject(selectColumn) as Long }
+
+        val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType::class) // TODO idk if that will work
+        val otherSideObjectList = objectsPksList.forEach { pk -> otherSideMapper.findWithoutRelations(pk, clazz) }
+        return getColumnName(prop)!! to otherSideObjectList
+    }
+
     private fun findTransform(rs: ResultSet): Any {
         val props = extractAllPropertiesWithInheritance(clazz)
 
-
         val values = props.map { prop ->
             // OneToOne
-            val oneToOneAnn = prop.findAnnotation<OneToOne>()
-            if (oneToOneAnn != null) {
-                val relationOtherSidePK = rs.getObject(getColumnName(prop)) as Long
-                val otherSideMapper = TableInheritanceFactory().getMapper(prop.returnType::class) // TODO idk if that will work
-                val otherSideObject = otherSideMapper.findWithoutRelations(relationOtherSidePK, clazz)
-                return getColumnName(prop) to otherSideObject
-            }
+            val oneToOne = handleFindOneToOneRelation(prop, rs)
+            if (oneToOne != null) return oneToOne
 
             // OneToMany
-            val oneToManyAnn = prop.findAnnotation<OneToMany>()
-            if (oneToManyAnn != null) {
-                val pkValue = rs.getObject(getPrimaryKeyName(clazz)) as Long
-                val otherSideClassType = prop.returnType.arguments.firstOrNull()?.type?.withNullability(false) // TODO idk if that will work
-
-                if (otherSideClassType == null) {
-                    println("otherSideClassType is null")
-                    return getColumnName(prop) to null
-                }
-
-                val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType::class) // TODO idk if that will work
-                val otherSideObject = otherSideMapper.findWithoutRelations(pkValue, clazz)
-                return getColumnName(prop) to otherSideObject
-            }
+            val oneToMany = handleFindOneToManyRelation(prop, rs)
+            if (oneToMany != null) return oneToMany
 
             // ManyToOne
-            val manyToOneAnn = prop.findAnnotation<ManyToOne>()
-            if (manyToOneAnn != null) {
-                val relationOtherSidePK = rs.getObject(getColumnName(prop)) as Long
-                val otherSideMapper = TableInheritanceFactory().getMapper(prop.returnType::class) // TODO idk if that will work
-                val otherSideObject = otherSideMapper.findWithoutRelations(relationOtherSidePK, clazz)
-                return getColumnName(prop) to otherSideObject
-            }
+            val manyToOne = handleFindManyToOneRelation(prop, rs)
+            if (manyToOne != null) return manyToOne
 
             // ManyToMany
-            val manyToManyAnn = prop.findAnnotation<ManyToMany>()
-            if (manyToManyAnn != null) {
-                val pkValue = rs.getObject(getPrimaryKeyName(clazz)) as Long
-                val otherSideClassType = prop.returnType.classifier as KClass<*> // TODO idk if that will work
-                val otherSideClassPrimaryKeyName = getPrimaryKeyName(otherSideClassType)
+            val manyToMany = handleFindManyToManyRelation(prop, rs)
+            if (manyToMany != null) return manyToMany
 
-                if (otherSideClassType == null) {
-                    println("otherSideClassType is null")
-                    return getColumnName(prop) to null
-                }
-
-                val firstTableName = getTableName(clazz)
-                val secondTableName = getTableName(otherSideClassType::class)
-                val middleTableName = if (firstTableName!! <= secondTableName!!)
-                    "${firstTableName}_$secondTableName"
-                else
-                    "${secondTableName}_$firstTableName"
-
-                val selectColumn = "${secondTableName}_$otherSideClassPrimaryKeyName"
-                val middleQuery = "select $selectColumn from $middleTableName where ${getPrimaryKeyName(clazz)} = ${formatValue(pkValue)}"
-                val objectsPksList = middleQuery.execAndMap { rs -> rs.getObject(selectColumn) as Long }
-
-                val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType::class) // TODO idk if that will work
-                val otherSideObjectList = objectsPksList.forEach { pk -> otherSideMapper.findWithoutRelations(pk, clazz) }
-                return getColumnName(prop) to otherSideObjectList
-            }
+            // normal columns
+            val columnName = getColumnName(prop)
+            return columnName to rs.getObject(columnName)
         }
 
         val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
