@@ -7,20 +7,15 @@ class QueryBuilder : IQueryBuilder  {
 
         override fun createQueryBuilder(tablename: String, parameters: Array<String>): QueryBuilder {
             if (parameters.isNotEmpty()){
+                parameters.forEachIndexed { index, param ->
+                    parameters[index] = "$tablename.$param"
+                }
                 query = "SELECT ${parameters.joinToString(", ")} FROM $tablename"
             }else{
                 query = "SELECT * FROM $tablename"
             }
             return this
         }
-
-    override fun innerJoin(tablename: String, parameterName: String): QueryBuilder {
-        return this
-    }
-
-    override fun leftJoin(tablename: String, parameterName: String): QueryBuilder {
-        return this
-    }
 
     override fun where(condition: String): QueryBuilder{
         var whereParams = condition.split("(?<=[<>!=])|(?=[<>!=])".toRegex())
@@ -31,6 +26,16 @@ class QueryBuilder : IQueryBuilder  {
         query += " AND ${prepareCondition(condition)}"
         return this
     }   
+    override fun join(joinTable: String, condition: String): QueryBuilder {
+        var whereParams = condition.split("(?<=[<>!=])|(?=[<>!=])".toRegex())
+        query += " INNER JOIN $joinTable ON ${whereParams.get(0)}${whereParams.get(1)}${whereParams.get(2)}"
+        return this
+    }
+    override fun leftJoin(joinTable: String, condition: String): QueryBuilder {
+        var whereParams = condition.split("(?<=[<>!=])|(?=[<>!=])".toRegex())
+        query += " LEFT JOIN $joinTable ON ${whereParams.get(0)} ${whereParams.get(1)} ${whereParams.get(2)}"
+        return this
+    }
     override fun orderBy(parameterName: String, order: QueryOrder): QueryBuilder {
         if(order == QueryOrder.ASCENING) {
             query += " ORDER BY $parameterName ASC"

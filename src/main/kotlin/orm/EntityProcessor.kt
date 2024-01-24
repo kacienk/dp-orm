@@ -75,10 +75,17 @@ abstract class EntityProcessor {
     protected fun formatValue(value: Any?): String {
         // Implement logic to format the value based on its type
         // This is just a simple example, you may need to handle different types appropriately
-        return when (value) {
-            is String -> "'$value'"
-            is Number -> value.toString()
-            is Boolean -> value.toString()
+        var newValue = value
+        if(value != null) {
+            val entity = value::class.findAnnotation<Entity>()
+            if (entity != null) {
+                newValue = this.getPrimaryKeyProp(entity::class)
+            }
+        }
+        return when (newValue) {
+            is String -> "'$newValue'"
+            is Number -> newValue.toString()
+            is Boolean -> newValue.toString()
             // Add more cases as needed
             else -> "NULL" // TODO issue with relations
         }
