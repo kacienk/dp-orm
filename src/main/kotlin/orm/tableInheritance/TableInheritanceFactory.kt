@@ -3,7 +3,7 @@ package orm.tableInheritance
 import kotlin.reflect.KClass
 import orm.enums.InheritanceType
 import orm.decorators.Inheritance
-import orm.tableInheritance.mappers.NoInheritanceMapper
+import orm.tableInheritance.mappers.noi.NoInheritanceMapper
 import orm.tableInheritance.mappers.cti.ConcreteTableInheritanceMapper
 import orm.tableInheritance.mappers.sti.SingleTableInheritanceMapper
 

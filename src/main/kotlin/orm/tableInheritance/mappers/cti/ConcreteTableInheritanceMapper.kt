@@ -64,13 +64,13 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
             val sqlSelect = StringBuilder("SELECT ")
 
-            val columnNames = getColumnNamesWithInheritanceSql(childrenClasses.first)
+            val columnNames = getColumnNamesWithInheritanceSql(childrenClasses.first())
             sqlSelect.append("$columnNames\n")
 
-            val tableName = getTableName(childrenClasses.first)
+            val tableName = getTableName(childrenClasses.first())
             sqlSelect.append("FROM $tableName\n")
 
-            val primaryKey = getPrimaryKeyName(childrenClasses.first)
+            val primaryKey = getPrimaryKeyName(childrenClasses.first())
             sqlSelect.append("WHERE $primaryKey = $id\n")
 
             sqlSelect.append(";")

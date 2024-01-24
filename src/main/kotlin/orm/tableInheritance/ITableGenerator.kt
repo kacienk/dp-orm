@@ -4,34 +4,18 @@ import orm.SqlTypeMapper
 import orm.decorators.Column
 import orm.decorators.Entity
 import orm.decorators.JoinColumn
+import orm.decorators.ManyToMany
+import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.full.superclasses
+import kotlin.reflect.full.*
 
-abstract class TableSqlGenerator {
-    abstract fun add(clazz: KClass<*>)
+interface ITableGenerator {
+    fun add(clazz: KClass<*>)
+    fun parse(): String
 
-    abstract fun parse(): String
-
-    protected fun extractMostBaseClass(clazz: KClass<*>): KClass<*> {
-        val baseClass = clazz.superclasses.firstOrNull() ?: return clazz
-        baseClass.findAnnotation<Entity>() ?: return clazz
-        return extractMostBaseClass(baseClass)
-    }
-
-    protected fun getTableName(clazz: KClass<*>): String? {
-        return clazz.findAnnotation<Entity>()?.tableName?.ifEmpty { clazz.simpleName }
-    }
-
-    protected fun generateSqlForAllProps(clazz: KClass<*>): String {
+    fun generateSqlForAllProps(clazz: KClass<*>): String {
         val allPropsSql = StringBuilder()
-        val baseClass = clazz.superclasses.firstOrNull() ?: clazz
-        val onlyClassProps = clazz.memberProperties.filter {
-                prop -> prop.name !in baseClass.memberProperties.map { it.name }
-        }
         for (prop in clazz.declaredMemberProperties) {
             val sqlForProp = generateSqlForProp(prop)
             allPropsSql.append(sqlForProp)
@@ -39,7 +23,7 @@ abstract class TableSqlGenerator {
         return allPropsSql.toString()
     }
 
-    protected fun generateSqlForProp(prop: KProperty1<out Any, *>): String {
+    fun generateSqlForProp(prop: KProperty1<out Any, *>): String {
         val propSql = StringBuilder()
         val typeMapper = SqlTypeMapper()
 
@@ -67,6 +51,13 @@ abstract class TableSqlGenerator {
 
         return propSql.toString()
     }
+
+    fun generateSqlForPrimaryKey(primaryKey: String): String {
+        return "  primary key ($primaryKey)\n"
+    }
+
+
+
 
 //     TODO move here functions from GenerateDatabase.kt to
 //      be able to create NoInheritanceTableGenerator and

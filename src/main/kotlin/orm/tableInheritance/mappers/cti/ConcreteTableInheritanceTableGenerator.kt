@@ -1,10 +1,10 @@
 package orm.tableInheritance.mappers.cti
 
-import generateSqlForPrimaryKey
-import orm.tableInheritance.TableSqlGenerator
+import orm.EntityProcessor
+import orm.tableInheritance.ITableGenerator
 import kotlin.reflect.KClass
 
-class ConcreteTableInheritanceTableGenerator: TableSqlGenerator() {
+class ConcreteTableInheritanceTableGenerator: ITableGenerator, IConcreteTableInheritance, EntityProcessor() {
     private val inheritanceMap: MutableMap<KClass<*>, MutableList<KClass<*>>> = mutableMapOf()
 
     override fun add(clazz: KClass<*>) {
@@ -42,7 +42,8 @@ class ConcreteTableInheritanceTableGenerator: TableSqlGenerator() {
         val classAllPropsSql = generateSqlForAllProps(childClass)
         tableBuilder.append(classAllPropsSql)
 
-        val primaryKeySql = generateSqlForPrimaryKey(baseClass)
+        val primaryKeyName = getPrimaryKeyName(baseClass)
+        val primaryKeySql = generateSqlForPrimaryKey(primaryKeyName)
         tableBuilder.append(primaryKeySql)
 
         tableBuilder.append(");\n\n")

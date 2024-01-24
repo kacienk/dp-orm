@@ -6,7 +6,6 @@ import orm.decorators.JoinColumn
 import orm.decorators.PrimaryKey
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
 
