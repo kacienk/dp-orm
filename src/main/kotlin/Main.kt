@@ -49,6 +49,13 @@ fun main(args: Array<String>) {
     studentEntityManager.persist(Student(id = 2, name = "Barbara", age = 20, email = "email@.com", enrolled = true, grade = "3", studentId = "112"))
     studentEntityManager.persist(Student(id = 3, name = "Cezary", age = 21, email = "email@.com", enrolled = true, grade = "3", studentId = "113"))
     studentEntityManager.persist(Student(id = 4, name = "Dawid", age = 22, email = "email@.com", enrolled = true, grade = "3", studentId = "114"))
+    for (classEntity in (listOf(User::class, Guild::class, Student::class))) {
+        val entityManager = EntityManager(classEntity)
+        println(entityManager.find(1))
+        println(entityManager.find(2))
+        println(entityManager.find(3))
+        println(entityManager.find(4))
+    }
 
     // Try adding program arguments via Run/Debug configuration.
     // Learn more about running applications: https://www.jetbrains.com/help/idea/running-applications.html.
