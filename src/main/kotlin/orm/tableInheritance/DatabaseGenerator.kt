@@ -12,20 +12,23 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.full.*
 
 
-class DatabaseGenerator: EntityProcessor() {
+class DatabaseGenerator(val database: Boolean): EntityProcessor() {
     private val noInheritance = NoInheritanceTableGenerator()
     private val singleTableInheritance = SingleTableInheritanceTableGenerator()
     private val concreteTableInheritance = ConcreteTableInheritanceTableGenerator()
 
-    fun generateDatabase(kClasses: List<KClass<*>>) {
+    fun generateDatabase(kClasses: List<KClass<*>>):String {
         val entities = filterEntities(kClasses)
         if (entities.isEmpty())
-            return println("No classes with @Entity annotation found.")
+            return "No classes with @Entity annotation found."
 
         val createSql = generateCreateSql(entities)
+        if(database) {
+            return createSql
+        }
         println(createSql)
-        writeToFile("create.sql", createSql)
-        println("create.sql file generated successfully.")
+        writeToFile("create2.sql", createSql)
+        return "create.sql file generated successfully."
     }
 
     private fun writeToFile(fileName: String, content: String) {
