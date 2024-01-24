@@ -11,5 +11,5 @@ class Guild (
     @Column
     val name: String,
     @OneToMany(mappedBy = "guild_id")
-    val users: List<User>
+    val users: List<User>?
 )

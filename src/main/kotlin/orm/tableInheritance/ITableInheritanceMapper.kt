@@ -8,5 +8,5 @@ interface ITableInheritanceMapper {
     fun update(entity: Any): Boolean
     fun remove(id: Long): Boolean
     fun query(q: String): Any? // for hardcore SQL queries like using WHERE, ORDER BY etc. - who needs them btw?
-//    fun find_without_relations(id: Long, entityClass: KClass<*>): Any?
+    fun findWithoutRelations(id: Long, entityClass: KClass<*>): Any?
 }

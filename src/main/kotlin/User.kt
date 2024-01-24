@@ -8,6 +8,10 @@ class User(
     @Column(name = "custom_name")
     val name: String,
     @ManyToOne
-    @JoinColumn(name = "guild_id", nullable = false)
-    val guild: Guild
+    @JoinColumn(name = "guild_id", nullable = true)
+    val guild: Guild?,
+
+    @OneToOne
+    @JoinColumn(name = "profile_id", nullable = true)
+    val profile: Profile?,
 )
