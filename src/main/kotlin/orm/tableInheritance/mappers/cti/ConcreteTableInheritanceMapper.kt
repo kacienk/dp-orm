@@ -21,11 +21,24 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
             getColumnName(prop) != null
         }.map { prop -> getColumnName(prop) to prop.call(castedEntity) }
 
+        val mostBaseClass = extractMostBaseClass(clazz)
+        val keyTableName = "${getTableName(mostBaseClass)}Keys"
+        val resultPair = columnNamesAndValues.find { it.first == keyTableName }
+
+        // Not sure about this
+        sqlInsert.append("INSERT INTO $keyTableName (")
+        sqlInsert.append(getPrimaryKeyName(mostBaseClass))
+        sqlInsert.append(") VALUES (")
+        if (resultPair != null) {
+            sqlInsert.append(resultPair.second)
+        }
+        sqlInsert.append(");\n")
+
         sqlInsert.append("INSERT INTO $tableName (")
         sqlInsert.append(columnNamesAndValues.joinToString(", ") { it.first!! })
         sqlInsert.append(") VALUES (")
         sqlInsert.append(columnNamesAndValues.joinToString(", ") { formatValue(it.second) })
-        sqlInsert.append(");")
+        sqlInsert.append(");\n")
 
         val sqlStatement = sqlInsert.toString()
 
@@ -37,47 +50,14 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
     }
 
     override fun find(id: Long?): Any? {
-
-        if (!clazz.isAbstract) {
-            val sqlSelect = StringBuilder("SELECT ")
-
-            val columnNames = getColumnNamesWithInheritanceSql(clazz)
-            sqlSelect.append("$columnNames\n")
-
-            val tableName = getTableName(clazz)
-            sqlSelect.append("FROM $tableName\n")
-
-            val primaryKey = getPrimaryKeyName(clazz)
-            sqlSelect.append("WHERE $primaryKey = $id\n")
-
-            sqlSelect.append(";")
-            val sqlStatement = sqlSelect.toString()
-
-            return sqlStatement.execAndMap(::transform)
-        }
-        else {
-            val childrenClasses = getChildrenClasses(clazz)
-
-            for (child in childrenClasses) {
-                return smallerFind(id, child) ?: continue
+        val mostBaseClass = extractMostBaseClass(clazz)
+        getChildrenClasses(mostBaseClass).forEach{ childClass ->
+            if (smallerFind(id, childClass) != null) {
+                return  smallerFind(id, childClass)
             }
-
-            val sqlSelect = StringBuilder("SELECT ")
-
-            val columnNames = getColumnNamesWithInheritanceSql(childrenClasses.first())
-            sqlSelect.append("$columnNames\n")
-
-            val tableName = getTableName(childrenClasses.first())
-            sqlSelect.append("FROM $tableName\n")
-
-            val primaryKey = getPrimaryKeyName(childrenClasses.first())
-            sqlSelect.append("WHERE $primaryKey = $id\n")
-
-            sqlSelect.append(";")
-            val sqlStatement = sqlSelect.toString()
-
-            return sqlStatement.execAndMap(::transform)
         }
+
+        return null
     }
 
     override fun update(entity: Any): Boolean {
@@ -85,8 +65,9 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         val castedEntity = clazz.cast(entity)
         val castedEntityClass = castedEntity::class
         val tableName = getTableName(clazz)
+        val mostBaseClass = extractMostBaseClass(clazz)
 
-        val primaryKeyProp = getPrimaryKeyProp(clazz)
+        val primaryKeyProp = getPrimaryKeyProp(mostBaseClass)
         val primaryKey = getColumnName(primaryKeyProp) to (
                 primaryKeyProp.call(castedEntity) ?: throw IllegalArgumentException(
                     "Updated entity must have value in field annotated with @PrimaryKey"
@@ -111,12 +92,15 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
     }
 
     override fun remove(id: Long): Boolean {
-        val sqlUpdate = java.lang.StringBuilder()
+        val sqlDelete = java.lang.StringBuilder()
         val tableName = getTableName(clazz)
-        val primaryKeyColumn = getPrimaryKeyName(clazz)
+        val mostBaseClass = extractMostBaseClass(clazz)
+        val primaryKeyColumn = getPrimaryKeyName(mostBaseClass)
+        val keyTableName = getTableName(mostBaseClass)+"Keys"
 
-        sqlUpdate.append("DELETE FROM $tableName WHERE $primaryKeyColumn = $id")
-        val sqlStatement = sqlUpdate.toString()
+        sqlDelete.append("DELETE FROM $tableName WHERE $primaryKeyColumn = $id;\n")
+        sqlDelete.append("DELETE FROM $keyTableName WHERE $primaryKeyColumn = $id;")
+        val sqlStatement = sqlDelete.toString()
 
         transaction {
             TransactionManager.current().exec(sqlStatement)
@@ -127,6 +111,17 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
     override fun query(q: String): Any? {
         return q.execAndMap(::transform)
+    }
+
+    override fun findWithoutRelations(id: Long, entityClass: KClass<*>): Any? {
+        val mostBaseClass = extractMostBaseClass(clazz)
+        getChildrenClasses(mostBaseClass).forEach{ childClass ->
+            if (smallerFind(id, childClass) != null) {
+                return  smallerFind(id, childClass)
+            }
+        }
+
+        return null
     }
 
     private fun extractAllPropertiesWithInheritance(clazz: KClass<*>): List<KProperty1<out Any, *>> {
@@ -181,17 +176,22 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         sqlSelect.append("$columnNames\n")
 
         val tableName = getTableName(childClass)
-        sqlSelect.append("FROM $tableName\n")
 
-        val primaryKey = getPrimaryKeyName(childClass)
-        sqlSelect.append("WHERE $primaryKey = $id\n")
+        val mostBaseClass = extractMostBaseClass(childClass)
+        val keyTableName = getTableName(mostBaseClass)
+        val primaryKeyName = getPrimaryKeyName(mostBaseClass)
+
+        sqlSelect.append("FROM $keyTableName\n")
+
+        sqlSelect.append("JOIN $tableName ON $keyTableName.$primaryKeyName = $tableName.$primaryKeyName")
+
+        sqlSelect.append("WHERE $primaryKeyName = $id\n")
 
         sqlSelect.append(";")
         val sqlStatement = sqlSelect.toString()
 
-        val results = sqlStatement.execAndMap(::transform)
-
-        return results.ifEmpty { null }
+        val result = sqlStatement.execAndMap(::transform)
+        return result.ifEmpty { null }
     }
 
     private fun transform(rs: ResultSet): Any {
