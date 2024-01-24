@@ -26,7 +26,13 @@ fun main(args: Array<String>) {
     val jdbcUrl = "jdbc:postgresql://localhost:$dbPort/$dbName"
     Database.connect(url = jdbcUrl, driver = "org.postgresql.Driver", user = dbUser, password = dbPassword)
 
-    val databse = DatabaseGenerator(true).generateDatabase(listOf(User::class, Guild::class))
+    val database = DatabaseGenerator(true).generateDatabase(listOf(User::class, Guild::class))
+    val queries = database.split(";")
+    transaction { 
+        for (query in queries) {
+            exec(query)
+        }
+     }
 
 
 
