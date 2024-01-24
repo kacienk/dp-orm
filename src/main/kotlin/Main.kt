@@ -5,6 +5,7 @@ import kotlin.reflect.full.findAnnotation
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
+import orm.EntityManager
 
 fun main(args: Array<String>) {
     println("Hello World!")
@@ -33,8 +34,21 @@ fun main(args: Array<String>) {
             exec(query)
         }
      }
-
-
+    val userEntityManager =  EntityManager(User::class)
+    val guildEntityManager = EntityManager(Guild::class)
+    userEntityManager.persist(User(id = 1, name = "Antek", guild = Guild(id = 1, name = "GildiaAntos", users = listOf())))
+    userEntityManager.persist(User(id = 2, name = "Bartek", guild = Guild(id = 1, name = "GildiaAntos", users = listOf())))
+    userEntityManager.persist(User(id = 3, name = "Czarek", guild = Guild(id = 1, name = "GildiaAntos", users = listOf())))
+    userEntityManager.persist(User(id = 4, name = "Dawid", guild = Guild(id = 1, name = "GildiaAntos", users = listOf())))
+    userEntityManager.persist(User(id = 5, name = "Edward", guild = Guild(id = 1, name = "GildiaAntos", users = listOf())))
+    guildEntityManager.persist(Guild(id = 2, name = "GildiaBartus", users = listOf()))
+    guildEntityManager.persist(Guild(id = 3, name = "GildiaCzarka", users = listOf()))
+    guildEntityManager.persist(Guild(id = 4, name = "GildiaDawida", users = listOf()))
+    val studentEntityManager = EntityManager(Student::class)
+    studentEntityManager.persist(Student(id = 1, name = "Andrzej", age = 19, email = "email@.com", enrolled = true, grade = "3", studentId = "111"))
+    studentEntityManager.persist(Student(id = 2, name = "Barbara", age = 20, email = "email@.com", enrolled = true, grade = "3", studentId = "112"))
+    studentEntityManager.persist(Student(id = 3, name = "Cezary", age = 21, email = "email@.com", enrolled = true, grade = "3", studentId = "113"))
+    studentEntityManager.persist(Student(id = 4, name = "Dawid", age = 22, email = "email@.com", enrolled = true, grade = "3", studentId = "114"))
 
     // Try adding program arguments via Run/Debug configuration.
     // Learn more about running applications: https://www.jetbrains.com/help/idea/running-applications.html.
