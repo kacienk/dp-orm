@@ -13,7 +13,7 @@ fun main(args: Array<String>) {
 
     val entityClasses = scanForEntities(files)
 
-    DatabaseGenerator().generateDatabase(entityClasses)
+//    DatabaseGenerator().generateDatabase(entityClasses)
 }
 
 fun scanForEntities(files: List<String>): List<KClass<*>> {
