@@ -126,8 +126,8 @@ class NoInheritanceMapper(private val clazz: KClass<*>): INoInheritance, ITableI
         return true
     }
 
-    override fun query(q: String): Any {
-        return q.execAndMap(::transform)
+    override fun query(q: String): Any? {
+        return q.execAndMap(::transform).firstOrNull()
     }
 
     private fun transform(rs: ResultSet): Any {
