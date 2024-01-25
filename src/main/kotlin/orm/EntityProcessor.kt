@@ -39,11 +39,11 @@ abstract class EntityProcessor {
         val filteredMembers = entityClass.declaredMemberProperties.filter {
             prop -> getColumnName(prop) != null;
         }
-        for ((index, prop) in entityClass.declaredMemberProperties.withIndex()) {
+        for ((index, prop) in filteredMembers.withIndex()) {
             val columnName = getColumnName(prop) ?: continue
             columnNamesBuilder.append(columnName)
 
-            if (index + 1 < entityClass.declaredMemberProperties.size) {
+            if (index + 1 < filteredMembers.size) {
                 columnNamesBuilder.append(", ")
             }
             else {
