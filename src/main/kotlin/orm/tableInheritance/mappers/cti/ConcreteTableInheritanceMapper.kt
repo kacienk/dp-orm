@@ -74,14 +74,22 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
     }
 
     override fun findWithoutRelations(id: Int, entityClass: KClass<*>): Any? {
-        val mostBaseClass = extractMostBaseClass(clazz)
-        getChildrenClasses(mostBaseClass).forEach{ childClass ->
-
-            val result = smallerFind(id, childClass).execAndMap(::transform)
-
-            if (result.isNotEmpty()) {
-                return  result
+        if (clazz.isAbstract) {
+            val mostBaseClass = extractMostBaseClass(clazz)
+            getChildrenClasses(mostBaseClass).forEach{ childClass ->
+                var result:Any? = null
+                transaction {
+                    result = smallerFind(id, childClass).execAndMap(::transform).firstOrNull()
+                }
+                return result
             }
+        }
+        else {
+            var result:Any? = null
+            transaction {
+                result = smallerFind(id, clazz).execAndMap(::transform).firstOrNull()
+            }
+            return result
         }
 
         return null
@@ -155,6 +163,8 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
     private fun getChildrenClasses(entityClass: KClass<*>): MutableList<KClass<*>> {
         val childrenClasses = mutableListOf<KClass<*>>()
+        println(entityClass.simpleName)
+        println(entityClass.sealedSubclasses)
         entityClass.sealedSubclasses.forEach { subclass ->
             if (subclass.findAnnotation<Entity>() != null) {
                 childrenClasses.add(subclass)
