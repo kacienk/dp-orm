@@ -24,14 +24,15 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
         val mostBaseClass = extractMostBaseClass(clazz)
         val keyTableName = "${getTableName(mostBaseClass)}Keys"
-        val resultPair = columnNamesAndValues.find { it.first == keyTableName }
+        val primaryKeyName = getPrimaryKeyName(mostBaseClass)
+        val resultPair = columnNamesAndValues.find { it.first == primaryKeyName }
 
         // Not sure about this
         sqlInsert.append("INSERT INTO $keyTableName (")
         sqlInsert.append(getPrimaryKeyName(mostBaseClass))
         sqlInsert.append(") VALUES (")
         if (resultPair != null) {
-            sqlInsert.append(resultPair.second)
+            sqlInsert.append(formatValue(resultPair.second))
         }
         sqlInsert.append(");\n")
 
@@ -42,11 +43,11 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         sqlInsert.append(");\n")
 
         val sqlStatement = sqlInsert.toString()
+        println(sqlStatement)
 
         transaction {
             TransactionManager.current().exec(sqlStatement)
         }
-
         return true
     }
 
