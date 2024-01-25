@@ -1,5 +1,7 @@
 package orm.tableInheritance.mappers.sti
 
+import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.sql.transactions.transaction
 import orm.EntityProcessor
 import orm.decorators.*
 import orm.tableInheritance.ITableInheritanceMapper
@@ -24,17 +26,19 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
 
         sqlInsert.append("INSERT INTO $tableName (\n")
         sqlInsert.append(columnNamesAndValues.joinToString(", ") { it.first!! })
+        sqlInsert.append(", class_type")
         sqlInsert.append("\n) VALUES (\n")
         sqlInsert.append(columnNamesAndValues.joinToString(", ") { formatValue(it.second) })
+        sqlInsert.append(", '${getTableName(castedEntityClass)}'")
         sqlInsert.append("\n);")
 
         val sqlStatement = sqlInsert.toString()
 
         println(sqlStatement)
 
-//        transaction {
-//            TransactionManager.current().exec(sqlStatement)
-//        }
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
 
         return true
     }
@@ -113,9 +117,9 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
 
         println(sqlStatement)
 
-//        transaction {
-//            TransactionManager.current().exec(sqlStatement)
-//        }
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
 
         return true
     }
@@ -130,9 +134,9 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         val sqlStatement = sqlRemove.toString()
 
         println(sqlStatement)
-//        transaction {
-//            TransactionManager.current().exec(sqlStatement)
-//        }
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
 
         return true
     }

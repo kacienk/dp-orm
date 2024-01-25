@@ -10,10 +10,10 @@ class Lecturer(
     name: String,
     age: Int,
     email: String,
-    @Column(nullable = false)
+    @Column(nullable = true)
     val employeeId: String,
-    @Column
+    @Column(nullable = true)
     val department: String,
-    @Column
+    @Column(nullable = true)
     val teachingSubject: String
 ) : Person(id, name, age, email)

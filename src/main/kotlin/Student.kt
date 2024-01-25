@@ -11,10 +11,10 @@ open class Student(
     name: String,
     age: Int,
     email: String,
-    @Column
+    @Column(nullable = true)
     val studentId: String,
-    @Column
+    @Column(nullable = true)
     val grade: String,
-    @Column
+    @Column(nullable = true)
     val enrolled: Boolean
 ) : Person(id, name, age, email)
