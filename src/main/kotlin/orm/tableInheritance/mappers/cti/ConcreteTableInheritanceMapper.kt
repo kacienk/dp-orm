@@ -229,30 +229,35 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
     private fun transform(rs: ResultSet): Any {
         getTableName(clazz) // Check if entity class
 
-        val values = this.getColumnNamesWithInheritance(clazz).map {
-                prop -> prop to rs.getObject(prop)
-        }
-
-        val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
+        val values = clazz.primaryConstructor?.parameters?.associate { param ->
+            val propName = param.name
+            val prop = clazz.declaredMemberProperties.find { it.name == propName }
+            if (prop?.let { getColumnName(it) } != null)
+                param to rs.getObject(getColumnName(prop))
+            else
+                param to null
+        } ?: emptyMap()
+        val newEntity = clazz.primaryConstructor?.callBy(values)
 
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
     }
 
     private fun findWithRelationsTransform(rs: ResultSet): Any {
-        val props = extractAllPropertiesWithInheritance(clazz)
-
-        val values = props.map { prop ->
-            if (isRelationalColumn(prop)) {
-                val relationPair = RelationsHandler(clazz, prop, rs).handleRelation()
-                if (relationPair != null) return relationPair
+        val values = clazz.primaryConstructor?.parameters?.associate { param ->
+            val propName = param.name
+            val prop = clazz.declaredMemberProperties.find { it.name == propName }
+            if (prop?.let { isRelationalColumn(it) } == true) {
+                val relationPair = prop.let { RelationsHandler(clazz, it, rs).handleRelation() }
+                if (relationPair != null) return@associate param to relationPair.second
             }
 
+            val columnName = prop?.let { getColumnName(it) }
+            println(columnName)
+            println(rs.getObject(columnName))
             // normal columns
-            val columnName = getColumnName(prop)
-            return columnName to rs.getObject(columnName)
-        }
-
-        val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
+            return@associate param to rs.getObject(columnName)
+        } ?: emptyMap()
+        val newEntity = clazz.primaryConstructor?.callBy(values)
 
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
     }
