@@ -140,21 +140,24 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
     }
     private fun findWithRelationsTransform(rs: ResultSet):Any {
-        val props = clazz.memberProperties
+        val props = clazz.declaredMemberProperties
 
         val values = props.map { prop ->
             if (isRelationalColumn(prop)) {
                 val relationPair = RelationsHandler(clazz, prop, rs).handleRelation()
-                if (relationPair != null) return relationPair
+                if (relationPair != null) return@map relationPair
             }
 
-            // normal columns
             val columnName = getColumnName(prop)
-            return columnName to rs.getObject(columnName)
+            println(columnName)
+            println(rs.getObject(columnName))
+            // normal columns
+            return@map columnName to rs.getObject(columnName)
         }
 
         val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
 
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
     }
+
 }
