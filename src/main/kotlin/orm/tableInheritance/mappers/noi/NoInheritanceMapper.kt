@@ -15,7 +15,7 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.full.superclasses
 
-class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper, EntityProcessor() {
+class NoInheritanceMapper(private val clazz: KClass<*>): INoInheritance, ITableInheritanceMapper, EntityProcessor() {
     override fun insert(entity: Any): Boolean {
         val sqlInsert = StringBuilder()
         val castedEntity = clazz.cast(entity)
