@@ -55,17 +55,19 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         if (clazz.isAbstract) {
             val mostBaseClass = extractMostBaseClass(clazz)
             getChildrenClasses(mostBaseClass).forEach{ childClass ->
-                val result = smallerFind(id, childClass).execAndMap(::findWithRelationsTransform)
-                if (result.isNotEmpty()) {
-                    return result
+                var result:Any? = null
+                transaction {
+                    result = smallerFind(id, childClass).execAndMap(::findWithRelationsTransform)
                 }
+                return result
             }
         }
         else {
-            val result = smallerFind(id, clazz).execAndMap(::findWithRelationsTransform)
-            if (result.isNotEmpty()) {
-                return result
+            var result:Any? = null
+            transaction {
+                result = smallerFind(id, clazz).execAndMap(::findWithRelationsTransform)
             }
+            return result
         }
 
         return null
