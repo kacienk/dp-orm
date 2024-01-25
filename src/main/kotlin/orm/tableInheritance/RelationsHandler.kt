@@ -59,7 +59,7 @@ class RelationsHandler(val clazz: KClass<*>, val prop: KProperty1<out Any, *>, v
             return getColumnName(prop)!! to null
         }
 
-        val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType::class) // TODO idk if that will work
+        val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType)
         val otherSideObject = otherSideMapper.findWithoutRelations(pkValue, clazz)
         return getColumnName(prop)!! to otherSideObject
     }

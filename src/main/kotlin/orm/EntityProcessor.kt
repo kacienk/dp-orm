@@ -36,6 +36,9 @@ abstract class EntityProcessor {
     protected fun getColumnNamesSql(entityClass: KClass<*>): String {
         val columnNamesBuilder = StringBuilder()
 
+        val filteredMembers = entityClass.declaredMemberProperties.filter {
+            prop -> getColumnName(prop) != null;
+        }
         for ((index, prop) in entityClass.declaredMemberProperties.withIndex()) {
             val columnName = getColumnName(prop) ?: continue
             columnNamesBuilder.append(columnName)
