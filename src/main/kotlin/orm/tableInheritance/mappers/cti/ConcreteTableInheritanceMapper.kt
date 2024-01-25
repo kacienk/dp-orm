@@ -50,7 +50,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         return true
     }
 
-    override fun find(id: Long?): Any? {
+    override fun find(id: Int?): Any? {
         val mostBaseClass = extractMostBaseClass(clazz)
         getChildrenClasses(mostBaseClass).forEach{ childClass ->
 
@@ -64,7 +64,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         return null
     }
 
-    override fun findWithoutRelations(id: Long, entityClass: KClass<*>): Any? {
+    override fun findWithoutRelations(id: Int, entityClass: KClass<*>): Any? {
         val mostBaseClass = extractMostBaseClass(clazz)
         getChildrenClasses(mostBaseClass).forEach{ childClass ->
 
@@ -109,7 +109,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         return true
     }
 
-    override fun remove(id: Long): Boolean {
+    override fun remove(id: Int): Boolean {
         val sqlDelete = java.lang.StringBuilder()
         val tableName = getTableName(clazz)
         val mostBaseClass = extractMostBaseClass(clazz)
@@ -176,7 +176,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         return columnNames
     }
 
-    private fun smallerFind(id: Long?, childClass: KClass<*>): String {
+    private fun smallerFind(id: Int?, childClass: KClass<*>): String {
         val sqlSelect = StringBuilder("SELECT ")
 
         val columnNames = getColumnNamesWithInheritanceSql(childClass)
