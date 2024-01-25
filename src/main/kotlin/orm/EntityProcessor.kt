@@ -9,11 +9,12 @@ import java.sql.ResultSet
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import orm.decorators.*
 import kotlin.reflect.full.hasAnnotation
+import kotlin.reflect.full.memberProperties
 
 
 abstract class EntityProcessor {
     protected fun getPrimaryKeyProp(entityClass: KClass<*>): KProperty1<out Any, *> {
-        return entityClass.declaredMemberProperties.find { prop ->
+        return entityClass.memberProperties.find { prop -> // memberProperties not declaredMemberProperties due to STI
             prop.annotations.any { it is PrimaryKey }
         } ?: throw IllegalArgumentException("Entity must have a property marked with @PrimaryKey ($entityClass)")
     }

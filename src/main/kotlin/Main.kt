@@ -1,25 +1,9 @@
-import orm.tableInheritance.DatabaseGenerator
-import orm.tableInheritance.mappers.noi.NoInheritanceMapper
-import orm.tableInheritance.mappers.sti.SingleTableInheritanceMapper
-import kotlin.reflect.full.findAnnotation
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import orm.EntityManager
+import orm.tableInheritance.DatabaseGenerator
 
 fun main(args: Array<String>) {
-    println("Hello World!")
-
-//    val STImapper = SingleTableInheritanceMapper(Student::class)
-//    STImapper.find(5)
-//    STImapper.insert(Student(id = 1, name = "imie", age = 99, email = "email@gmail.com", enrolled = true, grade = "3", studentId = "111"))
-//    STImapper.update(Student(id = 1, name = "imie", age = 99, email = "email@gmail.com", enrolled = true, grade = "3", studentId = "111"))
-//    STImapper.remove(9)
-//    val NoIMapper = NoInheritanceMapper(User::class)
-//    NoIMapper.find(5)
-//    NoIMapper.insert(User(id = 1, name = "imie", Guild(id = 1, name = "imie", users = listOf())))
-//    NoIMapper.update(User(id = 1, name = "imie", Guild(id = 1, name = "imie", users = listOf())))
-//    NoIMapper.remove(9)
     val dbName = "postgres"
     val dbUser = "postgres"
     val dbPassword = "password"
@@ -27,27 +11,70 @@ fun main(args: Array<String>) {
     val jdbcUrl = "jdbc:postgresql://localhost:$dbPort/$dbName"
     Database.connect(url = jdbcUrl, driver = "org.postgresql.Driver", user = dbUser, password = dbPassword)
 
-//    val database = DatabaseGenerator(true).generateDatabase(listOf(Player::class, Cricketer::class, Bowler::class))
-//    val queries = database.split(";")
-//    transaction {
-//        for (query in queries) {
-//            exec(query.trim())
-//        }
-//     }
-    val userEntityManager = EntityManager(User::class)
-    val guildEntityManager = EntityManager(Guild::class)
-    val bowlerEntityManager = EntityManager(Bowler::class)
-    val playerEntityManager = EntityManager(Player::class)
-//   bowlerEntityManager.persist(Bowler(baseId = 1, name="bowler", battingAverage = 3.3, bowlingAverage = 3.1 ))
-//    bowlerEntityManager.update(Bowler(baseId = 1, name="bowldadaer", battingAverage = 1.3, bowlingAverage = 2.1 ))
-    val a = playerEntityManager.find(1) as Player
-    println(a.baseId)
-    println(a.name)
-//    guildEntityManager.persist(Guild(id = 1, name = "GILDIA", users = listOf()))
-//    userEntityManager.persist(User(id = 2, name = "Bartek", Guild(id = 1, name = "GILDIA", users = listOf())))
-//    userEntityManager.update(User(id = 2, name = "Czarek", Guild(id = 1, name = "GILDIA", users = listOf())))
+    /** Generate database from the ground */
+    val database = DatabaseGenerator(true).generateDatabase(listOf(
+        /** No inheritance */
+        User::class,
+        Guild::class,
+        /** Single Table Inheritance */
+        Person::class,
+        Student::class,
+        DimwitStudent::class,
+        Lecturer::class,
+        /** Concrete Table Inheritance */
+        Player::class,
+        Footballer::class,
+        Cricketer::class,
+        Bowler::class
+    ))
+    val queries = database.split(";")
+    transaction {
+        for (query in queries) {
+            exec(query.trim())
+        }
+    }
+
+    /** No inheritance */
+
+    /** Single Table Inheritance */
+
+    /** Concrete Table Inheritance */
 
 
 
+
+
+
+
+
+
+//    val dogEM = EntityManager(Dog::class)
+//    dogEM.persist(Dog(id = 1, breed = "breed1", color = "color1", owner = null))
+
+//    val em = EntityManager(Lecturer::class)
+//    em.persist(Lecturer(id = 1, name = "A B", age = 30, email = "dhd@dkdk.kkd", dog = Dog(id = 1, breed = "breed1", color = "color1", owner = null), employeeId = "nfbdvsc", department = "AGH", teachingSubject = "dkjbsvkjb"))
+//    dogEM.update(Dog(id = 1, breed = "breed1", color = "color1", owner = Lecturer(id = 1, name = "A B", age = 30, email = "dhd@dkdk.kkd", dog = null, employeeId = "nfbdvsc", department = "AGH", teachingSubject = "dkjbsvkjb")))
+
+//    println((dogEM.find(1) as Dog).breed)
+//    println((em.find(1) as Lecturer).name)
+
+//    val STImapper = SingleTableInheritanceMapper(Student::class)
+//    val student = STImapper.find(1) as Student
+//    STImapper.insert(Student(id = 3, name = "imie", age = 99, email = "email@gmail.com", enrolled = true, grade = "3", studentId = "111"))
+//    STImapper.update(Student(id = 1, name = "zmiana", age = 11, email = "hhh@gmail.com", enrolled = false, grade = "ttt", studentId = "dsfghgj"))
+//    STImapper.remove(9)
+//    val NoIMapper = NoInheritanceMapper(User::class)
+//    NoIMapper.find(5)
+//    NoIMapper.insert(User(id = 1, name = "imie", Guild(id = 1, name = "imie", users = listOf())))
+//    NoIMapper.update(User(id = 1, name = "imie", Guild(id = 1, name = "imie", users = listOf())))
+//    NoIMapper.remove(9)
+
+
+
+
+
+
+    // Try adding program arguments via Run/Debug configuration.
+    // Learn more about running applications: https://www.jetbrains.com/help/idea/running-applications.html.
     println("Program arguments: ${args.joinToString()}")
 }
