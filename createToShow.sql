@@ -11,19 +11,6 @@ create table Guild (
   primary key (id)
 );
 
-create table users (
-  guild_id integer,
-  id integer,
-  custom_name varchar(255),
-  primary key (id)
-);
-
-create table Guild (
-  id integer,
-  name varchar(255),
-  primary key (id)
-);
-
 create table persons (
   failedCoursesNumber integer,
   isConflictedWithLecturer boolean,
@@ -67,11 +54,6 @@ create table Bowler (
   name varchar(255),
   primary key (baseId)
 ,FOREIGN KEY (baseId) REFERENCES PlayerKeys (baseId));
-
-alter table users
-  add constraint relation_guild_id_guild_id
-  foreign key (guild_id)
-  references Guild (id);
 
 alter table users
   add constraint relation_guild_id_guild_id
