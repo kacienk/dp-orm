@@ -81,6 +81,24 @@ fun main(args: Array<String>) {
 //    studentEM.delete(1)
 
     /** Concrete Table Inheritance */
-
-
+//    val bowlerEM = EntityManager(Bowler::class)
+//    val footballerEM = EntityManager(Footballer::class)
+//
+//    /** Insert */
+//    val bowler = Bowler(baseId = 1, name = "Bowler1", battingAverage = 3.1, bowlingAverage = 2.1)
+//    bowlerEM.persist(bowler)
+//    val footballer = Footballer(baseId = 2, name = "Footballer1", club = "Club1")
+//    footballerEM.persist(footballer)
+//
+//    /** Update */
+//    bowlerEM.update(Bowler(baseId = 1, name = "Bowler1", battingAverage = 1.1, bowlingAverage = 1.1))
+//
+//    /** Select */
+//    val foundBowler = bowlerEM.find(1) as Bowler
+//    println("Found bowler: ${foundBowler.name}")
+//    val foundFootballer = footballerEM.find(2) as Footballer
+//    println("Found footballer: ${foundFootballer.name}")
+//
+//    /** Delete */
+//    footballerEM.delete(2)
 }

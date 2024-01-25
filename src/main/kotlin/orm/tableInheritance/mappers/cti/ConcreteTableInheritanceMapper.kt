@@ -119,6 +119,8 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
         val sqlStatement = sqlUpdate.toString()
 
+        println(sqlStatement)
+
         transaction {
             TransactionManager.current().exec(sqlStatement)
         }
@@ -140,6 +142,8 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         transaction {
             TransactionManager.current().exec(sqlStatement)
         }
+
+        println(sqlStatement)
 
         return true
     }
@@ -163,8 +167,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
     private fun getChildrenClasses(entityClass: KClass<*>): MutableList<KClass<*>> {
         val childrenClasses = mutableListOf<KClass<*>>()
-        println(entityClass.simpleName)
-        println(entityClass.sealedSubclasses)
+
         entityClass.sealedSubclasses.forEach { subclass ->
             if (subclass.findAnnotation<Entity>() != null) {
                 childrenClasses.add(subclass)
@@ -230,6 +233,8 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
             sqlSelect.append(";")
         }
+
+        println(sqlSelect.toString())
 
         transaction {
             TransactionManager.current().exec(sqlSelect.toString())
