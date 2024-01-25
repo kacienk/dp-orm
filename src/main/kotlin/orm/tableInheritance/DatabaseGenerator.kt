@@ -206,12 +206,9 @@ class DatabaseGenerator(val database: Boolean): EntityProcessor() {
             ?: throw IllegalArgumentException(
                 "Join property field must be marked with @JoinColumn (${entityClass.simpleName}.${joinProp.name})"
             )
-
-        val constraintUuid = UUID.randomUUID()
-        val constraintUuidAsString = constraintUuid.toString().replace('-', '_')
-        relation.append("  add constraint $constraintUuidAsString\n")
-
         val foreignKeyColumnName = joinColumnAnnotation.name.ifEmpty { joinProp.name }
+
+        relation.append("  add constraint relation_${getColumnName(joinProp)}_$foreignKeyColumnName\n")
         relation.append("  foreign key ($foreignKeyColumnName)\n")
 
         val referencedClass: KClass<*> = joinProp.returnType.classifier as KClass<*>
@@ -222,7 +219,7 @@ class DatabaseGenerator(val database: Boolean): EntityProcessor() {
             )
         val referencedClassName = referencedClassEntityAnnotation.tableName.ifEmpty { referencedClass.simpleName }
         val primaryKeyName = getPrimaryKeyName(referencedClass)
-        relation.append("  references $referencedClassName ($primaryKeyName)\n\n")
+        relation.append("  references $referencedClassName ($primaryKeyName);\n\n")
 
         return relation.toString()
     }

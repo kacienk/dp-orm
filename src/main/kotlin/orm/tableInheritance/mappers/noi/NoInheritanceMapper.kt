@@ -54,6 +54,10 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
         return sqlStatement.execAndMap(::transform).firstOrNull()
     }
 
+    override fun findWithoutRelations(id: Long, entityClass: KClass<*>): Any? {
+        return 0
+    }
+
     override fun update(entity: Any): Boolean {
         val sqlUpdate = StringBuilder()
         val castedEntity = clazz.cast(entity)

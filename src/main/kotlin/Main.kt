@@ -19,9 +19,9 @@ fun main(args: Array<String>) {
 //    NoIMapper.insert(User(id = 1, name = "imie", Guild(id = 1, name = "imie", users = listOf())))
 //    NoIMapper.update(User(id = 1, name = "imie", Guild(id = 1, name = "imie", users = listOf())))
 //    NoIMapper.remove(9)
-    val dbName = "PatternDatabase"
-    val dbUser = "postgresCont"
-    val dbPassword = "password postgres"
+    val dbName = "postgres"
+    val dbUser = "postgres"
+    val dbPassword = "password"
     val dbPort = 5432
     val jdbcUrl = "jdbc:postgresql://localhost:$dbPort/$dbName"
     Database.connect(url = jdbcUrl, driver = "org.postgresql.Driver", user = dbUser, password = dbPassword)
@@ -30,7 +30,7 @@ fun main(args: Array<String>) {
     val queries = database.split(";")
     transaction { 
         for (query in queries) {
-            exec(query)
+            exec(query.trim())
         }
      }
 

@@ -11,7 +11,7 @@ class User(
     @JoinColumn(name = "guild_id", nullable = true)
     val guild: Guild?,
 
-    @OneToOne
-    @JoinColumn(name = "profile_id", nullable = true)
-    val profile: Profile?,
+//    @OneToOne
+//    @JoinColumn(name = "profile_id", nullable = true)
+//    val profile: Profile?,
 )
