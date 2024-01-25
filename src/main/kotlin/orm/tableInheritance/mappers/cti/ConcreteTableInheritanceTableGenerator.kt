@@ -60,7 +60,7 @@ class ConcreteTableInheritanceTableGenerator: ITableGenerator, IConcreteTableInh
         val primaryKeySql = generateSqlForPrimaryKey(primaryKeyName) + ","
         tableBuilder.append(primaryKeySql)
 
-        tableBuilder.append("FOREIGN KEY ($primaryKeyName) REFERNCES ${getTableName(mostBaseClass)}Keys ($primaryKeyName)")
+        tableBuilder.append("FOREIGN KEY ($primaryKeyName) REFERENCES ${getTableName(mostBaseClass)}Keys ($primaryKeyName)")
 
         tableBuilder.append(");\n\n")
 
