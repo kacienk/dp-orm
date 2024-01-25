@@ -58,14 +58,14 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
             getChildrenClasses(mostBaseClass).forEach{ childClass ->
                 val result = smallerFind(id, childClass).execAndMap(::findWithRelationsTransform)
                 if (result.isNotEmpty()) {
-                    return  result
+                    return result
                 }
             }
         }
         else {
             val result = smallerFind(id, clazz).execAndMap(::findWithRelationsTransform)
             if (result.isNotEmpty()) {
-                return  result
+                return result
             }
         }
 
@@ -197,11 +197,16 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
         sqlSelect.append("FROM $keyTableName\n")
 
-        sqlSelect.append("JOIN $tableName ON $keyTableName.$primaryKeyName = $tableName.$primaryKeyName")
+        sqlSelect.append("JOIN $tableName ON $keyTableName.$primaryKeyName = $tableName.$primaryKeyName ")
 
         sqlSelect.append("WHERE $primaryKeyName = $id\n")
 
         sqlSelect.append(";")
+
+        transaction {
+            TransactionManager.current().exec(sqlSelect.toString())
+        }
+
         println(sqlSelect.toString())
         return sqlSelect.toString()
     }
