@@ -57,7 +57,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
             getChildrenClasses(mostBaseClass).forEach{ childClass ->
                 var result:Any? = null
                 transaction {
-                    result = smallerFind(id, childClass).execAndMap(::findWithRelationsTransform)
+                    result = smallerFind(id, childClass).execAndMap(::findWithRelationsTransform).firstOrNull()
                 }
                 return result
             }
@@ -65,7 +65,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         else {
             var result:Any? = null
             transaction {
-                result = smallerFind(id, clazz).execAndMap(::findWithRelationsTransform)
+                result = smallerFind(id, clazz).execAndMap(::findWithRelationsTransform).firstOrNull()
             }
             return result
         }
@@ -245,17 +245,17 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
     }
 
     private fun findWithRelationsTransform(rs: ResultSet): Any {
+        val props = extractAllPropertiesWithInheritance(clazz)
+
         val values = clazz.primaryConstructor?.parameters?.associate { param ->
             val propName = param.name
-            val prop = clazz.declaredMemberProperties.find { it.name == propName }
+            val prop = props.find { it.name == propName }
             if (prop?.let { isRelationalColumn(it) } == true) {
                 val relationPair = prop.let { RelationsHandler(clazz, it, rs).handleRelation() }
                 if (relationPair != null) return@associate param to relationPair.second
             }
 
             val columnName = prop?.let { getColumnName(it) }
-            println(columnName)
-            println(rs.getObject(columnName))
             // normal columns
             return@associate param to rs.getObject(columnName)
         } ?: emptyMap()

@@ -27,7 +27,7 @@ fun main(args: Array<String>) {
     val jdbcUrl = "jdbc:postgresql://localhost:$dbPort/$dbName"
     Database.connect(url = jdbcUrl, driver = "org.postgresql.Driver", user = dbUser, password = dbPassword)
 
-//    val database = DatabaseGenerator(true).generateDatabase(listOf(User::class, Guild::class))
+//    val database = DatabaseGenerator(true).generateDatabase(listOf(Player::class, Cricketer::class, Bowler::class))
 //    val queries = database.split(";")
 //    transaction {
 //        for (query in queries) {
@@ -36,14 +36,18 @@ fun main(args: Array<String>) {
 //     }
     val userEntityManager = EntityManager(User::class)
     val guildEntityManager = EntityManager(Guild::class)
+    val bowlerEntityManager = EntityManager(Bowler::class)
+    val playerEntityManager = EntityManager(Player::class)
+//   bowlerEntityManager.persist(Bowler(baseId = 1, name="bowler", battingAverage = 3.3, bowlingAverage = 3.1 ))
+//    bowlerEntityManager.update(Bowler(baseId = 1, name="bowldadaer", battingAverage = 1.3, bowlingAverage = 2.1 ))
+    val a = playerEntityManager.find(1) as Player
+    println(a.baseId)
+    println(a.name)
 //    guildEntityManager.persist(Guild(id = 1, name = "GILDIA", users = listOf()))
 //    userEntityManager.persist(User(id = 2, name = "Bartek", Guild(id = 1, name = "GILDIA", users = listOf())))
-    userEntityManager.update(User(id = 2, name = "Czarek", Guild(id = 1, name = "GILDIA", users = listOf())))
-    userEntityManager.find(2)
+//    userEntityManager.update(User(id = 2, name = "Czarek", Guild(id = 1, name = "GILDIA", users = listOf())))
 
 
 
-    // Try adding program arguments via Run/Debug configuration.
-    // Learn more about running applications: https://www.jetbrains.com/help/idea/running-applications.html.
     println("Program arguments: ${args.joinToString()}")
 }
