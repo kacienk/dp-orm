@@ -1,6 +1,7 @@
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import orm.EntityManager
+import orm.querybuilder.QueryBuilder
 import orm.tableInheritance.DatabaseGenerator
 
 fun main(args: Array<String>) {
@@ -82,5 +83,18 @@ fun main(args: Array<String>) {
 
     /** Concrete Table Inheritance */
 
+
+    /** Query builder */
+//    val query = QueryBuilder()
+//        .createQueryBuilder(tablename = "users", parameters = arrayOf("id", "custom_name", "guild_id"))
+//        .where("id = 1")
+//        .retrieveQuery()
+//
+//    val userEM2 = EntityManager(User::class)
+//
+//    transaction {
+//        val user2 = userEM2.query(query) as User
+//        println("user2 name: ${user2.name}")
+//    }
 
 }
