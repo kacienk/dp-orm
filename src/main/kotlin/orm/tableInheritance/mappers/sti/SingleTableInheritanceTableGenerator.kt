@@ -5,11 +5,13 @@ import orm.tableInheritance.ITableGenerator
 import kotlin.reflect.KClass
 
 class SingleTableInheritanceTableGenerator: ITableGenerator, ISingleTableInheritance, EntityProcessor() {
-    private val inheritanceMap: MutableMap<KClass<*>, MutableList<KClass<*>>> = mutableMapOf()
+    private val inheritanceMap: MutableMap<KClass<*>, MutableSet<KClass<*>>> = mutableMapOf()
 
     override fun add(clazz: KClass<*>) {
-        if (inheritanceMap.containsKey(clazz))
+        if (inheritanceMap.containsKey(clazz)) {
+            inheritanceMap[clazz]!!.add(clazz)
             return
+        }
 
         val mostBaseClass = extractMostBaseClass(clazz)
 
@@ -17,7 +19,7 @@ class SingleTableInheritanceTableGenerator: ITableGenerator, ISingleTableInherit
             inheritanceMap[mostBaseClass]!!.add(clazz)
         }
         else {
-            inheritanceMap[mostBaseClass] = mutableListOf(clazz)
+            inheritanceMap[mostBaseClass] = mutableSetOf(clazz)
         }
     }
 
@@ -27,16 +29,12 @@ class SingleTableInheritanceTableGenerator: ITableGenerator, ISingleTableInherit
         return allTablesBuilder.toString()
     }
 
-    private fun createTable(baseClass: KClass<*>, classList: MutableList<KClass<*>>): String {
+    private fun createTable(baseClass: KClass<*>, classList: MutableSet<KClass<*>>): String {
         val tableBuilder = StringBuilder()
 
         val tableName = getTableName(baseClass)
 
         tableBuilder.append("create table $tableName (\n")
-
-        val allPropsSql = generateSqlForAllProps(baseClass)
-
-        tableBuilder.append(allPropsSql)
 
         for (clazz in classList) {
             val classAllPropsSql = generateSqlForAllProps(clazz)

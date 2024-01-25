@@ -7,6 +7,7 @@ import orm.tableInheritance.ITableInheritanceMapper
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import orm.EntityProcessor
+import orm.tableInheritance.RelationsHandler
 import java.sql.ResultSet
 import kotlin.reflect.full.*
 
@@ -49,11 +50,28 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         return true
     }
 
-    override fun find(id: Int?): Any? {
+    override fun find(id: Long?): Any? {
         val mostBaseClass = extractMostBaseClass(clazz)
         getChildrenClasses(mostBaseClass).forEach{ childClass ->
-            if (smallerFind(id, childClass) != null) {
-                return  smallerFind(id, childClass)
+
+            val result = smallerFind(id, childClass).execAndMap(::findWithRelationsTransform)
+
+            if (result.isNotEmpty()) {
+                return  result
+            }
+        }
+
+        return null
+    }
+
+    override fun findWithoutRelations(id: Long, entityClass: KClass<*>): Any? {
+        val mostBaseClass = extractMostBaseClass(clazz)
+        getChildrenClasses(mostBaseClass).forEach{ childClass ->
+
+            val result = smallerFind(id, childClass).execAndMap(::transform)
+
+            if (result.isNotEmpty()) {
+                return  result
             }
         }
 
@@ -91,7 +109,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         return true
     }
 
-    override fun remove(id: Int): Boolean {
+    override fun remove(id: Long): Boolean {
         val sqlDelete = java.lang.StringBuilder()
         val tableName = getTableName(clazz)
         val mostBaseClass = extractMostBaseClass(clazz)
@@ -111,17 +129,6 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
     override fun query(q: String): Any? {
         return q.execAndMap(::transform)
-    }
-
-    override fun findWithoutRelations(id: Int, entityClass: KClass<*>): Any? {
-        val mostBaseClass = extractMostBaseClass(clazz)
-        getChildrenClasses(mostBaseClass).forEach{ childClass ->
-            if (smallerFind(id, childClass) != null) {
-                return  smallerFind(id, childClass)
-            }
-        }
-
-        return null
     }
 
     private fun extractAllPropertiesWithInheritance(clazz: KClass<*>): List<KProperty1<out Any, *>> {
@@ -169,7 +176,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         return columnNames
     }
 
-    private fun smallerFind(id: Int?, childClass: KClass<*>): Any? {
+    private fun smallerFind(id: Long?, childClass: KClass<*>): String {
         val sqlSelect = StringBuilder("SELECT ")
 
         val columnNames = getColumnNamesWithInheritanceSql(childClass)
@@ -188,10 +195,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         sqlSelect.append("WHERE $primaryKeyName = $id\n")
 
         sqlSelect.append(";")
-        val sqlStatement = sqlSelect.toString()
-
-        val result = sqlStatement.execAndMap(::transform)
-        return result.ifEmpty { null }
+        return sqlSelect.toString()
     }
 
     private fun transform(rs: ResultSet): Any {
@@ -199,6 +203,25 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
         val values = this.getColumnNamesWithInheritance(clazz).map {
                 prop -> prop to rs.getObject(prop)
+        }
+
+        val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
+
+        return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
+    }
+
+    private fun findWithRelationsTransform(rs: ResultSet): Any {
+        val props = extractAllPropertiesWithInheritance(clazz)
+
+        val values = props.map { prop ->
+            if (isRelationalColumn(prop)) {
+                val relationPair = RelationsHandler(clazz, prop, rs).handleRelation()
+                if (relationPair != null) return relationPair
+            }
+
+            // normal columns
+            val columnName = getColumnName(prop)
+            return columnName to rs.getObject(columnName)
         }
 
         val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())

@@ -26,8 +26,10 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
 
         sqlInsert.append("INSERT INTO $tableName (\n")
         sqlInsert.append(columnNamesAndValues.joinToString(", ") { it.first!! })
+        sqlInsert.append(", class_type")
         sqlInsert.append("\n) VALUES (\n")
         sqlInsert.append(columnNamesAndValues.joinToString(", ") { formatValue(it.second) })
+        sqlInsert.append(", '${getTableName(castedEntityClass)}'")
         sqlInsert.append("\n);")
 
         val sqlStatement = sqlInsert.toString()
