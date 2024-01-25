@@ -12,69 +12,75 @@ fun main(args: Array<String>) {
     Database.connect(url = jdbcUrl, driver = "org.postgresql.Driver", user = dbUser, password = dbPassword)
 
     /** Generate database from the ground */
-    val database = DatabaseGenerator(true).generateDatabase(listOf(
-        /** No inheritance */
-        User::class,
-        Guild::class,
-        /** Single Table Inheritance */
-        Person::class,
-        Student::class,
-        DimwitStudent::class,
-        Lecturer::class,
-        /** Concrete Table Inheritance */
-        Player::class,
-        Footballer::class,
-        Cricketer::class,
-        Bowler::class
-    ))
-    val queries = database.split(";")
-    transaction {
-        for (query in queries) {
-            exec(query.trim())
-        }
-    }
+//    val database = DatabaseGenerator(true).generateDatabase(listOf(
+//        /** No inheritance */
+//        User::class,
+//        Guild::class,
+//        /** Single Table Inheritance */
+//        Person::class,
+//        Student::class,
+//        DimwitStudent::class,
+//        Lecturer::class,
+//        /** Concrete Table Inheritance */
+//        Player::class,
+//        Footballer::class,
+//        Cricketer::class,
+//        Bowler::class
+//    ))
+//    val queries = database.split(";")
+//    transaction {
+//        for (query in queries) {
+//            exec(query.trim())
+//        }
+//    }
 
     /** No inheritance */
+//    val guildEM = EntityManager(Guild::class)
+//    val userEM = EntityManager(User::class)
+//
+//    /** Insert */
+//    val guild = Guild(id = 1, name = "Guild1", users = mutableListOf())
+//    guildEM.persist(guild)
+//
+//    val user = User(id = 1, name = "User1", guild = guild)
+//    userEM.persist(user)
+//
+//    /** Update */
+//    guildEM.update(Guild(id = 1, name = "Guild1Changed", users = mutableListOf(user)))
+//
+//    /** Select */
+//    val foundUser = userEM.find(1) as User
+//    println("Found user: ${foundUser.name}")
+//    val foundGuild = guildEM.find(1) as Guild
+//    println("Found guild: ${foundGuild.name}")
+//
+//    /** Delete */
+//    userEM.delete(1)
 
     /** Single Table Inheritance */
+//    val studentEM = EntityManager(Student::class)
+//    val lecturerEM = EntityManager(Lecturer::class)
+//
+//    /** Insert */
+//    val student = Student(id = 1, name = "Student1", age = 1, email = "emailStudent1", studentId = "s1", grade = "A", enrolled = true)
+//    studentEM.persist(student)
+//
+//    val lecturer = Lecturer(id = 2, name = "Lecturer1", age = 50, email = "emailLecturer1", employeeId = "l1", department = "DEP", teachingSubject = "IT")
+//    lecturerEM.persist(lecturer)
+//
+//    /** Update */
+//    studentEM.update(Student(id = 1, name = "Student1Changed", age = 2, email = "emailStudent1", studentId = "s1", grade = "A", enrolled = true))
+//
+//    /** Select */
+//    val foundStudent = studentEM.find(1) as Student
+//    println("Found student: ${foundStudent.name}")
+//    val foundLecturer = lecturerEM.find(2) as Lecturer
+//    println("Found lecturer: ${foundLecturer.employeeId}")
+//
+//    /** Delete */
+//    studentEM.delete(1)
 
     /** Concrete Table Inheritance */
 
 
-
-
-
-
-
-
-
-//    val dogEM = EntityManager(Dog::class)
-//    dogEM.persist(Dog(id = 1, breed = "breed1", color = "color1", owner = null))
-
-//    val em = EntityManager(Lecturer::class)
-//    em.persist(Lecturer(id = 1, name = "A B", age = 30, email = "dhd@dkdk.kkd", dog = Dog(id = 1, breed = "breed1", color = "color1", owner = null), employeeId = "nfbdvsc", department = "AGH", teachingSubject = "dkjbsvkjb"))
-//    dogEM.update(Dog(id = 1, breed = "breed1", color = "color1", owner = Lecturer(id = 1, name = "A B", age = 30, email = "dhd@dkdk.kkd", dog = null, employeeId = "nfbdvsc", department = "AGH", teachingSubject = "dkjbsvkjb")))
-
-//    println((dogEM.find(1) as Dog).breed)
-//    println((em.find(1) as Lecturer).name)
-
-//    val STImapper = SingleTableInheritanceMapper(Student::class)
-//    val student = STImapper.find(1) as Student
-//    STImapper.insert(Student(id = 3, name = "imie", age = 99, email = "email@gmail.com", enrolled = true, grade = "3", studentId = "111"))
-//    STImapper.update(Student(id = 1, name = "zmiana", age = 11, email = "hhh@gmail.com", enrolled = false, grade = "ttt", studentId = "dsfghgj"))
-//    STImapper.remove(9)
-//    val NoIMapper = NoInheritanceMapper(User::class)
-//    NoIMapper.find(5)
-//    NoIMapper.insert(User(id = 1, name = "imie", Guild(id = 1, name = "imie", users = listOf())))
-//    NoIMapper.update(User(id = 1, name = "imie", Guild(id = 1, name = "imie", users = listOf())))
-//    NoIMapper.remove(9)
-
-
-
-
-
-
-    // Try adding program arguments via Run/Debug configuration.
-    // Learn more about running applications: https://www.jetbrains.com/help/idea/running-applications.html.
-    println("Program arguments: ${args.joinToString()}")
 }
