@@ -20,7 +20,7 @@ class SqlTypeMapper {
             String::class -> "varchar(255)"
             Int::class -> "integer"
             Int::class -> "bigint"
-            Double::class -> "double"
+            Double::class -> "double precision"
             Boolean::class -> "boolean"
             else -> throw IllegalArgumentException("Unsupported Kotlin type: $kotlinType")
         }
