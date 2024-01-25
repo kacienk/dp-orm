@@ -135,7 +135,7 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
         val values = clazz.declaredMemberProperties.map {
             prop ->
             if (getColumnName(prop) != null)
-                getColumnName(prop) to rs.getObject(getColumnName(prop))
+                prop.name to rs.getObject(getColumnName(prop))
             else
                 prop.name to null
         }
