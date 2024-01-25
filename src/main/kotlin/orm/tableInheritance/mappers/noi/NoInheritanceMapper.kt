@@ -132,14 +132,15 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
     private fun transform(rs: ResultSet): Any {
         getTableName(clazz) // Check if entity class
 
-        val values = clazz.declaredMemberProperties.map {
-            prop ->
-            if (getColumnName(prop) != null)
-                prop.name to rs.getObject(getColumnName(prop))
+        val values = clazz.primaryConstructor?.parameters?.associate { param ->
+            val propName = param.name
+            val prop = clazz.declaredMemberProperties.find { it.name == propName }
+            if (prop?.let { getColumnName(it) } != null)
+                param to rs.getObject(getColumnName(prop))
             else
-                prop.name to null
-        }
-        val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
+                param to null
+        } ?: emptyMap()
+        val newEntity = clazz.primaryConstructor?.callBy(values)
 
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
     }
