@@ -1,5 +1,6 @@
 package orm.tableInheritance.mappers.cti
 
+import Player
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import orm.decorators.Entity
@@ -52,14 +53,18 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
     }
 
     override fun find(id: Int?): Any? {
-        val mostBaseClass = extractMostBaseClass(clazz)
-        getChildrenClasses(mostBaseClass).forEach{ childClass ->
-
-            val result = smallerFind(id, childClass).execAndMap(::findWithRelationsTransform)
-
-            if (result.isNotEmpty()) {
-                return  result
+        if (clazz.isAbstract) {
+            val mostBaseClass = extractMostBaseClass(clazz)
+            getChildrenClasses(mostBaseClass).forEach{ childClass ->
+                val result = smallerFind(id, childClass).execAndMap(::findWithRelationsTransform)
+                if (result.isNotEmpty()) {
+                    return  result
+                }
             }
+        }
+        else {
+            val result = smallerFind(id, clazz).execAndMap(::findWithRelationsTransform)
+            return result
         }
 
         return null
@@ -147,7 +152,6 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
 
     private fun getChildrenClasses(entityClass: KClass<*>): MutableList<KClass<*>> {
         val childrenClasses = mutableListOf<KClass<*>>()
-
         entityClass.sealedSubclasses.forEach { subclass ->
             if (subclass.findAnnotation<Entity>() != null) {
                 childrenClasses.add(subclass)
@@ -196,6 +200,7 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         sqlSelect.append("WHERE $primaryKeyName = $id\n")
 
         sqlSelect.append(";")
+        println(sqlSelect.toString())
         return sqlSelect.toString()
     }
 
