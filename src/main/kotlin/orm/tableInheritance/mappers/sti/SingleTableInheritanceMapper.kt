@@ -62,8 +62,12 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         val sqlStatement = sqlSelect.toString()
 
         println(sqlStatement)
-        return null
-        return sqlStatement.execAndMap(::transform)
+
+        var result:Any? = null
+        transaction {
+            result = sqlStatement.execAndMap(::findWithRelationsTransform).firstOrNull()
+        }
+        return result
     }
 
     override fun find(id: Int?): Any? {
@@ -80,13 +84,20 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
             val primaryKey = getPrimaryKeyName(mostBaseClass)
             sqlSelect.append("WHERE $primaryKey = $id\n")
         }
+        else {
+            sqlSelect.append("WHERE class_type = '${getTableName(clazz)}'")
+        }
 
         sqlSelect.append(";")
         val sqlStatement = sqlSelect.toString()
 
         println(sqlStatement)
-        return null
-        return sqlStatement.execAndMap(::findWithRelationsTransform)
+
+        var result:Any? = null
+        transaction {
+            result = sqlStatement.execAndMap(::findWithRelationsTransform).firstOrNull()
+        }
+        return result
     }
 
     override fun update(entity: Any): Boolean {
@@ -192,12 +203,14 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         val values = props.map { prop ->
             if (isRelationalColumn(prop)) {
                 val relationPair = RelationsHandler(clazz, prop, rs).handleRelation()
-                if (relationPair != null) return relationPair
+                if (relationPair != null) return@map relationPair
             }
 
-            // normal columns
             val columnName = getColumnName(prop)
-            return columnName to rs.getObject(columnName)
+            println(columnName)
+            println(rs.getObject(columnName))
+            // normal columns
+            return@map columnName to rs.getObject(columnName)
         }
 
         val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
