@@ -84,7 +84,7 @@ abstract class EntityProcessor {
         if(value != null) {
             val entity = value::class.findAnnotation<Entity>()
             if (entity != null) {
-                newValue = this.getPrimaryKeyProp(entity::class)
+                newValue = getPrimaryKeyProp(value::class).call(value)
             }
         }
         return when (newValue) {

@@ -12,7 +12,7 @@ class EntityManager(private val entityClass: KClass<*>) {
         mapper.insert(entity);
     }
 
-    fun find(id: Long): Any? {
+    fun find(id: Int): Any? {
         return mapper.find(id);
     }
 
@@ -20,7 +20,7 @@ class EntityManager(private val entityClass: KClass<*>) {
         mapper.update(entity);
     }
 
-    fun delete(id: Long) {
+    fun delete(id: Int) {
         mapper.remove(id);
     }
     fun query(q: String) {

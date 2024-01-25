@@ -5,6 +5,7 @@ import kotlin.reflect.full.findAnnotation
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
+import orm.EntityManager
 
 fun main(args: Array<String>) {
     println("Hello World!")
@@ -26,13 +27,19 @@ fun main(args: Array<String>) {
     val jdbcUrl = "jdbc:postgresql://localhost:$dbPort/$dbName"
     Database.connect(url = jdbcUrl, driver = "org.postgresql.Driver", user = dbUser, password = dbPassword)
 
-    val database = DatabaseGenerator(true).generateDatabase(listOf(User::class, Guild::class))
-    val queries = database.split(";")
-    transaction { 
-        for (query in queries) {
-            exec(query.trim())
-        }
-     }
+//    val database = DatabaseGenerator(true).generateDatabase(listOf(User::class, Guild::class))
+//    val queries = database.split(";")
+//    transaction {
+//        for (query in queries) {
+//            exec(query.trim())
+//        }
+//     }
+    val userEntityManager = EntityManager(User::class)
+    val guildEntityManager = EntityManager(Guild::class)
+//    guildEntityManager.persist(Guild(id = 1, name = "GILDIA", users = listOf()))
+//    userEntityManager.persist(User(id = 2, name = "Bartek", Guild(id = 1, name = "GILDIA", users = listOf())))
+    userEntityManager.update(User(id = 2, name = "Czarek", Guild(id = 1, name = "GILDIA", users = listOf())))
+    userEntityManager.find(2)
 
 
 

@@ -42,8 +42,8 @@ class RelationsHandler(val clazz: KClass<*>, val prop: KProperty1<out Any, *>, v
     private fun handleFindOneToOneRelation(): Pair<String, Any?>? {
         prop.findAnnotation<OneToOne>() ?: return null
 
-        val relationOtherSidePK = rs.getObject(getColumnName(prop)) as Long
-        val otherSideMapper = TableInheritanceFactory().getMapper(prop.returnType::class) // TODO idk if that will work
+        val relationOtherSidePK = rs.getObject(getColumnName(prop)) as Int
+        val otherSideMapper = TableInheritanceFactory().getMapper(prop.returnType.classifier as KClass<*>) // TODO idk if that will work
         val otherSideObject = otherSideMapper.findWithoutRelations(relationOtherSidePK, clazz)
         return getColumnName(prop)!! to otherSideObject
     }
@@ -51,8 +51,8 @@ class RelationsHandler(val clazz: KClass<*>, val prop: KProperty1<out Any, *>, v
     private fun handleFindOneToManyRelation(): Pair<String, Any?>? {
         prop.findAnnotation<OneToMany>() ?: return null
 
-        val pkValue = rs.getObject(getPrimaryKeyName(clazz)) as Long
-        val otherSideClassType = prop.returnType.arguments.firstOrNull()?.type?.withNullability(false) // TODO idk if that will work
+        val pkValue = rs.getObject(getPrimaryKeyName(clazz)) as Int
+        val otherSideClassType = prop.returnType.arguments.firstOrNull()?.type?.classifier as KClass<*>
 
         if (otherSideClassType == null) {
             println("otherSideClassType is null")
@@ -67,8 +67,8 @@ class RelationsHandler(val clazz: KClass<*>, val prop: KProperty1<out Any, *>, v
     private fun handleFindManyToOneRelation(): Pair<String, Any?>? {
         prop.findAnnotation<ManyToOne>() ?: return null
 
-        val relationOtherSidePK = rs.getObject(getColumnName(prop)) as Long
-        val otherSideMapper = TableInheritanceFactory().getMapper(prop.returnType::class) // TODO idk if that will work
+        val relationOtherSidePK = rs.getObject(getColumnName(prop)) as Int
+        val otherSideMapper = TableInheritanceFactory().getMapper(prop.returnType.classifier as KClass<*>) // TODO idk if that will work
         val otherSideObject = otherSideMapper.findWithoutRelations(relationOtherSidePK, clazz)
         return getColumnName(prop)!! to otherSideObject
     }
@@ -76,7 +76,7 @@ class RelationsHandler(val clazz: KClass<*>, val prop: KProperty1<out Any, *>, v
     private fun handleFindManyToManyRelation(): Pair<String, Any?>? {
         prop.findAnnotation<ManyToMany>() ?: return null
 
-        val pkValue = rs.getObject(getPrimaryKeyName(clazz)) as Long
+        val pkValue = rs.getObject(getPrimaryKeyName(clazz)) as Int
         val otherSideClassType = prop.returnType.classifier as KClass<*> // TODO idk if that will work
         val otherSideClassPrimaryKeyName = getPrimaryKeyName(otherSideClassType)
 
@@ -86,7 +86,7 @@ class RelationsHandler(val clazz: KClass<*>, val prop: KProperty1<out Any, *>, v
         }
 
         val firstTableName = getTableName(clazz)
-        val secondTableName = getTableName(otherSideClassType::class)
+        val secondTableName = getTableName(otherSideClassType)
         val middleTableName = if (firstTableName!! <= secondTableName!!)
             "${firstTableName}_$secondTableName"
         else
@@ -94,9 +94,9 @@ class RelationsHandler(val clazz: KClass<*>, val prop: KProperty1<out Any, *>, v
 
         val selectColumn = "${secondTableName}_$otherSideClassPrimaryKeyName"
         val middleQuery = "select $selectColumn from $middleTableName where ${getPrimaryKeyName(clazz)} = ${formatValue(pkValue)}"
-        val objectsPksList = middleQuery.execAndMap { rs -> rs.getObject(selectColumn) as Long }
+        val objectsPksList = middleQuery.execAndMap { rs -> rs.getObject(selectColumn) as Int }
 
-        val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType::class) // TODO idk if that will work
+        val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType) // TODO idk if that will work
         val otherSideObjectList = objectsPksList.forEach { pk -> otherSideMapper.findWithoutRelations(pk, clazz) }
         return getColumnName(prop)!! to otherSideObjectList
     }

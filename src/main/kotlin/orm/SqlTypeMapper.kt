@@ -19,7 +19,7 @@ class SqlTypeMapper {
         return when (kotlinType) {
             String::class -> "varchar(255)"
             Int::class -> "integer"
-            Long::class -> "bigint"
+            Int::class -> "bigint"
             Double::class -> "double"
             Boolean::class -> "boolean"
             else -> throw IllegalArgumentException("Unsupported Kotlin type: $kotlinType")

@@ -1,5 +1,7 @@
 package orm.tableInheritance.mappers.sti
 
+import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.sql.transactions.transaction
 import orm.EntityProcessor
 import orm.decorators.*
 import orm.tableInheritance.ITableInheritanceMapper
@@ -32,14 +34,14 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
 
         println(sqlStatement)
 
-//        transaction {
-//            TransactionManager.current().exec(sqlStatement)
-//        }
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
 
         return true
     }
 
-    override fun findWithoutRelations(id: Long, entityClass: KClass<*>): Any? {
+    override fun findWithoutRelations(id: Int, entityClass: KClass<*>): Any? {
         val sqlSelect = StringBuilder("SELECT ")
 
         val columnNames = getColumnNamesWithInheritanceSql(clazz)
@@ -62,7 +64,7 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         return sqlStatement.execAndMap(::transform)
     }
 
-    override fun find(id: Long?): Any? {
+    override fun find(id: Int?): Any? {
         val sqlSelect = StringBuilder("SELECT ")
 
         val columnNames = getColumnNamesWithInheritanceSql(clazz)
@@ -113,14 +115,14 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
 
         println(sqlStatement)
 
-//        transaction {
-//            TransactionManager.current().exec(sqlStatement)
-//        }
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
 
         return true
     }
 
-    override fun remove(id: Long): Boolean {
+    override fun remove(id: Int): Boolean {
         val sqlRemove = StringBuilder()
         val mostBaseClass = this.extractMostBaseClass(clazz)
         val tableName = getTableName(mostBaseClass)
@@ -130,9 +132,9 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         val sqlStatement = sqlRemove.toString()
 
         println(sqlStatement)
-//        transaction {
-//            TransactionManager.current().exec(sqlStatement)
-//        }
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
 
         return true
     }

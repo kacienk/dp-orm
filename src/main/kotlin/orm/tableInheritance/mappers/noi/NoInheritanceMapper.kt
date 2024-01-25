@@ -4,12 +4,16 @@ import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import orm.EntityProcessor
 import orm.tableInheritance.ITableInheritanceMapper
+import orm.tableInheritance.RelationsHandler
 import java.lang.StringBuilder
 import java.sql.ResultSet
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 import kotlin.reflect.cast
 import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.full.superclasses
 
 class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper, EntityProcessor() {
     override fun insert(entity: Any): Boolean {
@@ -30,14 +34,14 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
 
         println(sqlStatement)
 
-//        transaction {
-//            TransactionManager.current().exec(sqlStatement)
-//        }
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
 
         return true
     }
 
-    override fun find(id: Long?): Any? {
+    override fun find(id: Int?): Any? {
         val sqlSelect = StringBuilder()
         val tableName = getTableName(clazz)
         val primaryKeyName = getPrimaryKeyName(clazz)
@@ -50,12 +54,28 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
         val sqlStatement = sqlSelect.toString()
 
         println(sqlStatement)
-        return null
-        return sqlStatement.execAndMap(::transform).firstOrNull()
+        var result:Any? = null
+        transaction {
+            result = sqlStatement.execAndMap(::findWithRelationsTransform).firstOrNull()
+        }
+        return result
     }
 
-    override fun findWithoutRelations(id: Long, entityClass: KClass<*>): Any? {
-        return 0
+    override fun findWithoutRelations(id: Int, entityClass: KClass<*>): Any? {
+        val sqlSelect = StringBuilder()
+        val tableName = getTableName(clazz)
+        val primaryKeyName = getPrimaryKeyName(clazz)
+
+        sqlSelect.append("select ${getColumnNamesSql(clazz)}")
+        sqlSelect.append(" from $tableName")
+        if (id != null)
+            sqlSelect.append(" where $primaryKeyName = $id")
+        sqlSelect.append(";")
+        val sqlStatement = sqlSelect.toString()
+
+        println(sqlStatement)
+
+        return sqlStatement.execAndMap(::transform).firstOrNull()
     }
 
     override fun update(entity: Any): Boolean {
@@ -81,14 +101,14 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
 
         println(sqlStatement)
 
-//        transaction {
-//            TransactionManager.current().exec(sqlStatement)
-//        }
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
 
         return true
     }
 
-    override fun remove(id: Long): Boolean {
+    override fun remove(id: Int): Boolean {
         val sqlUpdate = StringBuilder()
         val tableName = getTableName(clazz)
         val primaryKeyColumn = getPrimaryKeyName(clazz)
@@ -98,9 +118,9 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
 
         println(sqlStatement)
 
-//        transaction {
-//            TransactionManager.current().exec(sqlStatement)
-//        }
+        transaction {
+            TransactionManager.current().exec(sqlStatement)
+        }
 
         return true
     }
@@ -115,6 +135,24 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
         val values = clazz.declaredMemberProperties.filter {
             prop -> getColumnName(prop) != null
         }.map { prop -> getColumnName(prop) to rs.getObject(getColumnName(prop)) }
+        val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
+
+        return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
+    }
+    private fun findWithRelationsTransform(rs: ResultSet):Any {
+        val props = clazz.memberProperties
+
+        val values = props.map { prop ->
+            if (isRelationalColumn(prop)) {
+                val relationPair = RelationsHandler(clazz, prop, rs).handleRelation()
+                if (relationPair != null) return relationPair
+            }
+
+            // normal columns
+            val columnName = getColumnName(prop)
+            return columnName to rs.getObject(columnName)
+        }
+
         val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
 
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
