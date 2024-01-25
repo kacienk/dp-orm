@@ -1,11 +1,9 @@
 package orm.tableInheritance.mappers.sti
 
-import org.jetbrains.exposed.sql.transactions.TransactionManager
-import org.jetbrains.exposed.sql.transactions.transaction
 import orm.EntityProcessor
 import orm.decorators.*
 import orm.tableInheritance.ITableInheritanceMapper
-import orm.tableInheritance.TableInheritanceFactory
+import orm.tableInheritance.RelationsHandler
 import java.sql.ResultSet
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
@@ -84,7 +82,7 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
 
         println(sqlStatement)
         return null
-        return sqlStatement.execAndMap(::findTransform)
+        return sqlStatement.execAndMap(::findWithRelationsTransform)
     }
 
     override fun update(entity: Any): Boolean {
@@ -184,87 +182,14 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
     }
 
-    private fun handleFindOneToOneRelation(prop: KProperty1<out Any, *>, rs: ResultSet): Pair<String, Any?>? {
-        prop.findAnnotation<OneToOne>() ?: return null
-
-        val relationOtherSidePK = rs.getObject(getColumnName(prop)) as Long
-        val otherSideMapper = TableInheritanceFactory().getMapper(prop.returnType::class) // TODO idk if that will work
-        val otherSideObject = otherSideMapper.findWithoutRelations(relationOtherSidePK, clazz)
-        return getColumnName(prop)!! to otherSideObject
-    }
-
-    private fun handleFindOneToManyRelation(prop: KProperty1<out Any, *>, rs: ResultSet): Pair<String, Any?>? {
-        prop.findAnnotation<OneToMany>() ?: return null
-
-        val pkValue = rs.getObject(getPrimaryKeyName(clazz)) as Long
-        val otherSideClassType = prop.returnType.arguments.firstOrNull()?.type?.withNullability(false) // TODO idk if that will work
-
-        if (otherSideClassType == null) {
-            println("otherSideClassType is null")
-            return getColumnName(prop)!! to null
-        }
-
-        val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType::class) // TODO idk if that will work
-        val otherSideObject = otherSideMapper.findWithoutRelations(pkValue, clazz)
-        return getColumnName(prop)!! to otherSideObject
-    }
-
-    private fun handleFindManyToOneRelation(prop: KProperty1<out Any, *>, rs: ResultSet): Pair<String, Any?>? {
-        prop.findAnnotation<ManyToOne>() ?: return null
-
-        val relationOtherSidePK = rs.getObject(getColumnName(prop)) as Long
-        val otherSideMapper = TableInheritanceFactory().getMapper(prop.returnType::class) // TODO idk if that will work
-        val otherSideObject = otherSideMapper.findWithoutRelations(relationOtherSidePK, clazz)
-        return getColumnName(prop)!! to otherSideObject
-    }
-
-    private fun handleFindManyToManyRelation(prop: KProperty1<out Any, *>, rs: ResultSet): Pair<String, Any?>? {
-        prop.findAnnotation<ManyToMany>() ?: return null
-
-        val pkValue = rs.getObject(getPrimaryKeyName(clazz)) as Long
-        val otherSideClassType = prop.returnType.classifier as KClass<*> // TODO idk if that will work
-        val otherSideClassPrimaryKeyName = getPrimaryKeyName(otherSideClassType)
-
-        if (otherSideClassType == null) {
-            println("otherSideClassType is null")
-            return getColumnName(prop)!! to null
-        }
-
-        val firstTableName = getTableName(clazz)
-        val secondTableName = getTableName(otherSideClassType::class)
-        val middleTableName = if (firstTableName!! <= secondTableName!!)
-            "${firstTableName}_$secondTableName"
-        else
-            "${secondTableName}_$firstTableName"
-
-        val selectColumn = "${secondTableName}_$otherSideClassPrimaryKeyName"
-        val middleQuery = "select $selectColumn from $middleTableName where ${getPrimaryKeyName(clazz)} = ${formatValue(pkValue)}"
-        val objectsPksList = middleQuery.execAndMap { rs -> rs.getObject(selectColumn) as Long }
-
-        val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType::class) // TODO idk if that will work
-        val otherSideObjectList = objectsPksList.forEach { pk -> otherSideMapper.findWithoutRelations(pk, clazz) }
-        return getColumnName(prop)!! to otherSideObjectList
-    }
-
-    private fun findTransform(rs: ResultSet): Any {
+    private fun findWithRelationsTransform(rs: ResultSet): Any {
         val props = extractAllPropertiesWithInheritance(clazz)
 
         val values = props.map { prop ->
-            // OneToOne
-            val oneToOne = handleFindOneToOneRelation(prop, rs)
-            if (oneToOne != null) return oneToOne
-
-            // OneToMany
-            val oneToMany = handleFindOneToManyRelation(prop, rs)
-            if (oneToMany != null) return oneToMany
-
-            // ManyToOne
-            val manyToOne = handleFindManyToOneRelation(prop, rs)
-            if (manyToOne != null) return manyToOne
-
-            // ManyToMany
-            val manyToMany = handleFindManyToManyRelation(prop, rs)
-            if (manyToMany != null) return manyToMany
+            if (isRelationalColumn(prop)) {
+                val relationPair = RelationsHandler(clazz, prop, rs).handleRelation()
+                if (relationPair != null) return relationPair
+            }
 
             // normal columns
             val columnName = getColumnName(prop)
@@ -274,13 +199,6 @@ class SingleTableInheritanceMapper(private val clazz: KClass<*>): ITableInherita
         val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
 
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
-    }
-
-    private fun isRelationalColumn(property: KProperty1<out Any, *>): Boolean {
-        return (property.hasAnnotation<OneToOne>()
-                || property.hasAnnotation<OneToMany>()
-                || property.hasAnnotation<ManyToOne>()
-                || property.hasAnnotation<ManyToMany>())
     }
 
     private fun getRelationalProperties(): List<KProperty1<out Any, *>> {

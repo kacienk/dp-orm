@@ -1,9 +1,5 @@
 package orm
 
-import orm.decorators.Column
-import orm.decorators.Entity
-import orm.decorators.JoinColumn
-import orm.decorators.PrimaryKey
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
@@ -11,6 +7,8 @@ import kotlin.reflect.full.findAnnotation
 
 import java.sql.ResultSet
 import org.jetbrains.exposed.sql.transactions.TransactionManager
+import orm.decorators.*
+import kotlin.reflect.full.hasAnnotation
 
 
 abstract class EntityProcessor {
@@ -60,6 +58,13 @@ abstract class EntityProcessor {
             return null
 
         return joinColumnAnnotation?.name?.ifEmpty { prop.name } ?: columnAnnotation?.name?.ifEmpty { prop.name }
+    }
+
+    protected fun isRelationalColumn(property: KProperty1<out Any, *>): Boolean {
+        return (property.hasAnnotation<OneToOne>()
+                || property.hasAnnotation<OneToMany>()
+                || property.hasAnnotation<ManyToOne>()
+                || property.hasAnnotation<ManyToMany>())
     }
 
     protected fun <T:Any> String.execAndMap(transform : (ResultSet) -> T) : List<T> {
