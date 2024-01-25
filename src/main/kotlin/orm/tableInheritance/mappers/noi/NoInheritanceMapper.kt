@@ -147,20 +147,36 @@ class NoInheritanceMapper(private val clazz: KClass<*>): ITableInheritanceMapper
     private fun findWithRelationsTransform(rs: ResultSet):Any {
         val props = clazz.declaredMemberProperties
 
-        val values = props.map { prop ->
-            if (isRelationalColumn(prop)) {
-                val relationPair = RelationsHandler(clazz, prop, rs).handleRelation()
-                if (relationPair != null) return@map relationPair
+//        val values = props.map { prop ->
+//            if (isRelationalColumn(prop)) {
+//                val relationPair = RelationsHandler(clazz, prop, rs).handleRelation()
+//                if (relationPair != null) return@map relationPair
+//            }
+//
+//            val columnName = getColumnName(prop)
+//            println(columnName)
+//            println(rs.getObject(columnName))
+//            // normal columns
+//            return@map columnName to rs.getObject(columnName)
+//        }
+//
+//        val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
+
+        val values = clazz.primaryConstructor?.parameters?.associate { param ->
+            val propName = param.name
+            val prop = clazz.declaredMemberProperties.find { it.name == propName }
+            if (prop?.let { isRelationalColumn(it) } == true) {
+                val relationPair = prop.let { RelationsHandler(clazz, it, rs).handleRelation() }
+                if (relationPair != null) return@associate param to relationPair.second
             }
 
-            val columnName = getColumnName(prop)
+            val columnName = prop?.let { getColumnName(it) }
             println(columnName)
             println(rs.getObject(columnName))
             // normal columns
-            return@map columnName to rs.getObject(columnName)
-        }
-
-        val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
+            return@associate param to rs.getObject(columnName)
+        } ?: emptyMap()
+        val newEntity = clazz.primaryConstructor?.callBy(values)
 
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
     }
