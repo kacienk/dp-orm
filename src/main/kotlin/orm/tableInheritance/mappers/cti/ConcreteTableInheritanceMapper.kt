@@ -1,6 +1,5 @@
 package orm.tableInheritance.mappers.cti
 
-import Player
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import orm.decorators.Entity
@@ -186,28 +185,44 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
     private fun smallerFind(id: Int?, childClass: KClass<*>): String {
         val sqlSelect = StringBuilder("SELECT ")
 
-        val columnNames = getColumnNamesWithInheritanceSql(childClass)
-        sqlSelect.append("$columnNames\n")
+        if(childClass.isAbstract) {
+            val columnNames = getColumnNamesWithInheritanceSql(childClass)
+            sqlSelect.append("$columnNames\n")
 
-        val tableName = getTableName(childClass)
+            val tableName = getTableName(childClass)
 
-        val mostBaseClass = extractMostBaseClass(childClass)
-        val keyTableName = getTableName(mostBaseClass)
-        val primaryKeyName = getPrimaryKeyName(mostBaseClass)
+            val mostBaseClass = extractMostBaseClass(childClass)
+            val keyTableName = getTableName(mostBaseClass)
+            val primaryKeyName = getPrimaryKeyName(mostBaseClass)
 
-        sqlSelect.append("FROM $keyTableName\n")
+            sqlSelect.append("FROM $keyTableName\n")
 
-        sqlSelect.append("JOIN $tableName ON $keyTableName.$primaryKeyName = $tableName.$primaryKeyName ")
+            sqlSelect.append("JOIN $tableName ON $keyTableName.$primaryKeyName = $tableName.$primaryKeyName ")
 
-        sqlSelect.append("WHERE $primaryKeyName = $id\n")
+            sqlSelect.append("WHERE $primaryKeyName = $id\n")
 
-        sqlSelect.append(";")
+            sqlSelect.append(";")
+        }
+        else {
+            val columnNames = getColumnNamesWithInheritanceSql(childClass)
+            sqlSelect.append("$columnNames\n")
+
+            val tableName = getTableName(childClass)
+
+            val mostBaseClass = extractMostBaseClass(childClass)
+            val primaryKeyName = getPrimaryKeyName(mostBaseClass)
+
+            sqlSelect.append("FROM $tableName\n")
+
+            sqlSelect.append("WHERE $primaryKeyName = $id\n")
+
+            sqlSelect.append(";")
+        }
 
         transaction {
             TransactionManager.current().exec(sqlSelect.toString())
         }
 
-        println(sqlSelect.toString())
         return sqlSelect.toString()
     }
 
