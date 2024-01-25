@@ -64,7 +64,9 @@ class ConcreteTableInheritanceMapper(private val clazz: KClass<*>): ITableInheri
         }
         else {
             val result = smallerFind(id, clazz).execAndMap(::findWithRelationsTransform)
-            return result
+            if (result.isNotEmpty()) {
+                return  result
+            }
         }
 
         return null
