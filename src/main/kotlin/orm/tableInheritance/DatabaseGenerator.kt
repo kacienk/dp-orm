@@ -27,7 +27,7 @@ class DatabaseGenerator(val database: Boolean): EntityProcessor() {
             return createSql
         }
         println(createSql)
-        writeToFile("create2.sql", createSql)
+        writeToFile("createToShow.sql", createSql)
         return "create.sql file generated successfully."
     }
 
