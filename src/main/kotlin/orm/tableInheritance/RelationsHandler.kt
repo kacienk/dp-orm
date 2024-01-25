@@ -61,7 +61,7 @@ class RelationsHandler(val clazz: KClass<*>, val prop: KProperty1<out Any, *>, v
 
         val otherSideMapper = TableInheritanceFactory().getMapper(otherSideClassType)
         val otherSideObject = otherSideMapper.findWithoutRelations(pkValue, clazz)
-        return getColumnName(prop)!! to otherSideObject
+        return prop.name to mutableListOf(otherSideObject)
     }
 
     private fun handleFindManyToOneRelation(): Pair<String, Any?>? {

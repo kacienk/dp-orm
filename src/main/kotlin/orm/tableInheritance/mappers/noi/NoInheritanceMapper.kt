@@ -3,6 +3,10 @@ package orm.tableInheritance.mappers.noi
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import orm.EntityProcessor
+import orm.decorators.ManyToMany
+import orm.decorators.ManyToOne
+import orm.decorators.OneToMany
+import orm.decorators.OneToOne
 import orm.tableInheritance.ITableInheritanceMapper
 import orm.tableInheritance.RelationsHandler
 import java.lang.StringBuilder
@@ -10,10 +14,7 @@ import java.sql.ResultSet
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.cast
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.full.primaryConstructor
-import kotlin.reflect.full.superclasses
+import kotlin.reflect.full.*
 
 class NoInheritanceMapper(private val clazz: KClass<*>): INoInheritance, ITableInheritanceMapper, EntityProcessor() {
     override fun insert(entity: Any): Boolean {
@@ -135,8 +136,11 @@ class NoInheritanceMapper(private val clazz: KClass<*>): INoInheritance, ITableI
         val values = clazz.primaryConstructor?.parameters?.associate { param ->
             val propName = param.name
             val prop = clazz.declaredMemberProperties.find { it.name == propName }
-            if (prop?.let { getColumnName(it) } != null)
-                param to rs.getObject(getColumnName(prop))
+            if (prop?.let { isRelationalColumn(it) } == true)
+                return@associate param to null
+
+            if (prop?.let { getColumnName(it) } != null){
+                param to rs.getObject(getColumnName(prop))}
             else
                 param to null
         } ?: emptyMap()
@@ -145,23 +149,6 @@ class NoInheritanceMapper(private val clazz: KClass<*>): INoInheritance, ITableI
         return newEntity ?: throw IllegalStateException("Failed to create an instance of $clazz")
     }
     private fun findWithRelationsTransform(rs: ResultSet):Any {
-        val props = clazz.declaredMemberProperties
-
-//        val values = props.map { prop ->
-//            if (isRelationalColumn(prop)) {
-//                val relationPair = RelationsHandler(clazz, prop, rs).handleRelation()
-//                if (relationPair != null) return@map relationPair
-//            }
-//
-//            val columnName = getColumnName(prop)
-//            println(columnName)
-//            println(rs.getObject(columnName))
-//            // normal columns
-//            return@map columnName to rs.getObject(columnName)
-//        }
-//
-//        val newEntity = clazz.primaryConstructor?.call(*values.toTypedArray())
-
         val values = clazz.primaryConstructor?.parameters?.associate { param ->
             val propName = param.name
             val prop = clazz.declaredMemberProperties.find { it.name == propName }
